@@ -11,7 +11,7 @@ return new class extends Migration
     {
         Schema::create('br_cat_tipo_asesoria', function (Blueprint $table) {
             $table->id();
-            $table->string('descripcion')->comment('MEDICINA GENERAL, FISIOTERAPIA, TRABAJO SOCIAL, GERONTOLOGÍA, PSICOLÓGICA, JURÍDICA, NUTRICIONAL');
+            $table->enum('descripcion', ['MEDICINA GENERAL', 'FISIOTERAPIA', 'TRABAJO SOCIAL', 'GERONTOLOGÍA', 'PSICOLÓGICA', 'JURÍDICA', 'NUTRICIONAL'])->comment('MEDICINA GENERAL, FISIOTERAPIA, TRABAJO SOCIAL, GERONTOLOGÍA, PSICOLÓGICA, JURÍDICA, NUTRICIONAL');
         });
     }
 

@@ -14,7 +14,9 @@ return new class extends Migration
             $table->unsignedBigInteger('asesoria_tipo_id')->nullable();
             $table->integer('orden_pregunta');
             $table->string('tipo_respuesta')->comment('opcion_multiple, texto_libre, opcion_unica, si_no');
+            $table->enum('tipo_dato', ['decimal_a_dos_puntos', 'decimal_a_un_punto', 'entero', 'texto_corto', 'texto_largo'])->nullable()->default(null);
             $table->string('descripcion');
+            $table->string('ayuda')->nullable()->default(null);
             $table->boolean('es_requerido');
             $table->boolean('estado');
             $table->unsignedBigInteger('depende_de')->nullable();

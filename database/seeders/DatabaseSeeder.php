@@ -14,6 +14,10 @@ class DatabaseSeeder extends Seeder
             BrCatTipoAsesoriaSeeder::class,
             BrCatEntidadesFederativasSeeder::class,
             BrAccesoSeeder::class,
+            BrDirectorioSeeder::class,
+            BrPreguntasSeeder::class,
+            BrOpcionesSeeder::class,
+            
         ]);
     }
 }

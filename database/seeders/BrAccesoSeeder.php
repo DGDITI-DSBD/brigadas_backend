@@ -27,11 +27,54 @@ class BrAccesoSeeder extends Seeder
                 'tipo_usuario' => 'COORDINADOR',
             ],
             [
-                'nombre_usuario' => 'especialista',
+                'nombre_usuario' => 'medicina general',
                 'nombre_completo' => 'Especialista de Área',
                 'estado' => true,
                 'tipo_usuario' => 'ESPECIALISTA',
             ],
+
+            [
+                'nombre_usuario' => 'fisioterapia',
+                'nombre_completo' => 'Especialista de Área',
+                'estado' => true,
+                'tipo_usuario' => 'ESPECIALISTA',
+            ],
+
+            [
+                'nombre_usuario' => 'trabajo social',
+                'nombre_completo' => 'Especialista de Área',
+                'estado' => true,
+                'tipo_usuario' => 'ESPECIALISTA',
+            ],
+
+
+             [
+                'nombre_usuario' => 'gerontologia',
+                'nombre_completo' => 'Especialista de Área',
+                'estado' => true,
+                'tipo_usuario' => 'ESPECIALISTA',
+            ],
+
+            [
+                'nombre_usuario' => 'psicologica',
+                'nombre_completo' => 'Especialista de Área',
+                'estado' => true,
+                'tipo_usuario' => 'ESPECIALISTA',
+            ],
+
+            [
+                'nombre_usuario' => 'juridica',
+                'nombre_completo' => 'Especialista de Área',
+                'estado' => true,
+                'tipo_usuario' => 'ESPECIALISTA',
+            ],
+
+            [
+                'nombre_usuario' => 'nutricional',
+                'nombre_completo' => 'Especialista de Área',
+                'estado' => true,
+                'tipo_usuario' => 'ESPECIALISTA',
+            ]
         ];
 
         $usuarios_creados = [];

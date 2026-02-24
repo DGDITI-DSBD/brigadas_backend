@@ -19,6 +19,7 @@ return new class extends Migration
             $table->string('telefono');
             $table->string('email');
             $table->boolean('estado');
+            $table->timestamps();
 
             $table->foreign('usuario_id')->references('id')->on('br_accesos')->onDelete('cascade');
             $table->foreign('tipo_asesoria')->references('id')->on('br_cat_tipo_asesoria')->onDelete('cascade');
