@@ -2,11 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Models\BrCatEntidadesFederativas;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 
 class BrCatEntidadesFederativasSeeder extends Seeder
 {
+    // Seeder para poblar la tabla de entidades federativas
     public function run(): void
     {
         $entidades = [
@@ -44,6 +46,6 @@ class BrCatEntidadesFederativasSeeder extends Seeder
             [ 'ct_entidad_federativa' => 32,  'entidad_federativa' => 'Zacatecas',                        'abre_entidad_federativa' => 'Zac.'    ],
         ];
 
-        DB::table('br_cat_entidades_federativas')->insert($entidades);
+        BrCatEntidadesFederativas::insert($entidades);
     }
 }

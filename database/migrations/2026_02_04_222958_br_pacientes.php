@@ -17,8 +17,8 @@ return new class extends Migration
             $table->string('nombres', 80);
             $table->date('fecha_nacimiento')->comment('DD/MM/AAAA');
             $table->char('genero', 1)->comment('M/H VALIDACIÓN LOGICA (PADRON DE ALIMENTACIÓN PARA EL BIENESTAR');
-            $table->integer('ct_edo_civil');
-            $table->integer('tp_id_oficial');
+            $table->unsignedBigInteger('ct_edo_civil');
+            $table->unsignedBigInteger('tp_id_oficial');
             $table->integer('id_oficial');
             $table->integer('ct_ent_nac');
             $table->string('curp', 18);
@@ -39,8 +39,8 @@ return new class extends Migration
             $table->string('telefono', 10);
             $table->string('celular', 10);
             $table->string('email', 80);
-            $table->integer('ct_gdo_estudios');
-            $table->integer('ct_nacionalidad');
+            $table->unsignedBigInteger('ct_gdo_estudios');
+            $table->unsignedBigInteger('ct_nacionalidad');
             $table->string('estado_padron')->comment('BENEFICIARIO, CAPTACION');
             $table->boolean('requiere_seguimiento')->comment('true=si, false=no');
 
@@ -70,7 +70,30 @@ return new class extends Migration
                 ->on('br_cat_codigos_postales')
                 ->onDelete('restrict');
 
+            // Foreign key - Nacionalidades
+            $table->foreign('ct_nacionalidad')
+                ->references('ct_nacionalidad')
+                ->on('br_cat_nacionalidad')
+                ->onDelete('restrict');
+
+
+            // Foreign key - Estados civiles
+            $table->foreign('ct_edo_civil')
+                ->references('ct_edo_civil')
+                ->on('br_cat_estado_civil')
+                ->onDelete('restrict');
             
+            // Foreign key - Grados de estudios
+            $table->foreign('ct_gdo_estudios')
+                ->references('ct_gdo_estudios')
+                ->on('br_cat_grado_estudios')
+                ->onDelete('restrict');
+
+            // Foreign key - Documentos oficiales
+            $table->foreign('tp_id_oficial')
+                ->references('tp_id_oficial')
+                ->on('br_cat_documentos_oficiales')
+                ->onDelete('restrict');
             
         });
     }

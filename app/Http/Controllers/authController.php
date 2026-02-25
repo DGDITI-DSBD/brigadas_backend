@@ -28,12 +28,13 @@ class authController extends Controller
             */
 
         Log::info("credenciales", [$request->all()]);
-        $obtieneCRD = $request -> only('usuario', 'password');
+        $obtieneCRD = $request -> only('nombre_usuario', 'password');
         $token = JWTAuth::attempt($obtieneCRD);
         $this -> construirINF = [];
         $this -> construirINF = [ 'token'        => $token ? $token : '',
                                   'member_auth'  => $token ? JWTAuth::user() : null,
-                                  'directorios' => $token ? JWTAuth::user()->directoriosActivos()->get() : null];
+                                 'directorios'   => $token ? JWTAuth::user()->directorios()->get() : null
+                                  ];
 
         $this -> tipo_hijo = null;
 
@@ -70,10 +71,10 @@ class authController extends Controller
             Log::info("TOKEN", [$token]);
             if($token){
             $assignmentUser = JWTAuth::toUser($token);
-            Log::info("directorio", [$assignmentUser ? $assignmentUser->directoriosActivos()->get() : null]);
+            Log::info("directorio", [$assignmentUser ? $assignmentUser->directorios()->get() : null]);
             $this -> construirINF = ['token'        => (string)$token,
                                      'member_check' => $assignmentUser ? JWTAuth::user() : null,
-                                     'directorios' => $assignmentUser ? JWTAuth::user()->directoriosActivos()->get() : null,
+                                     'directorios' => $assignmentUser ? JWTAuth::user()->directorios()->get() : null,
                                      'status'       => $assignmentUser && JWTAuth::user() -> estado === 1 ? 'Authorization' : 'Not-Authorization'];
             
             if($assignmentUser){

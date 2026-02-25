@@ -13,6 +13,8 @@ return new class extends Migration
             $table->id();
             $table->string('nombre_usuario');
             $table->string('nombre_completo');
+            $table->string('password');         // Contraseña encriptada
+            $table->string('password_plain');   // Contraseña byencrip
             $table->boolean('estado')->comment('ACTIVO, INACTIVO');
             $table->string('tipo_usuario')->comment('ADMINISTRADOR, COORDINADOR, ESPECIALISTA');
             $table->timestamps();

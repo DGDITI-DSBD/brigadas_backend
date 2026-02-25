@@ -9,9 +9,7 @@ use App\Models\BrDirectorio;
 
 class BrDirectorioSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+    // Seeder para poblar la tabla de directorio con los datos de asesorías
     public function run(): void
     {
 

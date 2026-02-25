@@ -10,6 +10,7 @@ class CatNacionalidades extends Model
     use HasFactory;
 
     protected $table = 'br_cat_nacionalidad';
+    protected $primaryKey = 'ct_nacionalidad';
     public $timestamps = false;
     protected $fillable = [
         'nacionalidad',

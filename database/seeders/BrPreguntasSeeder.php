@@ -8,9 +8,8 @@ use App\Models\BrCatPregunta;
 
 class BrPreguntasSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
+
+    // Seeder para poblar la tabla de preguntas con las preguntas predefinidas para cada tipo de asesoría
     public function run(): void
     {
         $data = [

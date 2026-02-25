@@ -17,18 +17,24 @@ class BrAccesoSeeder extends Seeder
             [
                 'nombre_usuario' => 'admin',
                 'nombre_completo' => 'Administrador General',
+                'password' => bcrypt('admin123'),
+                'password_plain' => 'admin123',
                 'estado' => true,
                 'tipo_usuario' => 'ADMINISTRADOR',
             ],
             [
                 'nombre_usuario' => 'coordinador',
                 'nombre_completo' => 'Coordinador Principal',
+                'password' => bcrypt('coordinador123'),
+                'password_plain' => 'coordinador123',
                 'estado' => true,
                 'tipo_usuario' => 'COORDINADOR',
             ],
             [
                 'nombre_usuario' => 'medicina general',
                 'nombre_completo' => 'Especialista de Área',
+                'password' => bcrypt('medicina123'),
+                'password_plain' => 'medicina123',
                 'estado' => true,
                 'tipo_usuario' => 'ESPECIALISTA',
             ],
@@ -36,6 +42,8 @@ class BrAccesoSeeder extends Seeder
             [
                 'nombre_usuario' => 'fisioterapia',
                 'nombre_completo' => 'Especialista de Área',
+                'password' => bcrypt('fisioterapia123'),
+                'password_plain' => 'fisioterapia123',
                 'estado' => true,
                 'tipo_usuario' => 'ESPECIALISTA',
             ],
@@ -43,6 +51,8 @@ class BrAccesoSeeder extends Seeder
             [
                 'nombre_usuario' => 'trabajo social',
                 'nombre_completo' => 'Especialista de Área',
+                'password' => bcrypt('trabajosocial123'),
+                'password_plain' => 'trabajosocial123',
                 'estado' => true,
                 'tipo_usuario' => 'ESPECIALISTA',
             ],
@@ -51,6 +61,8 @@ class BrAccesoSeeder extends Seeder
              [
                 'nombre_usuario' => 'gerontologia',
                 'nombre_completo' => 'Especialista de Área',
+                'password' => bcrypt('gerontologia123'),
+                'password_plain' => 'gerontologia123',
                 'estado' => true,
                 'tipo_usuario' => 'ESPECIALISTA',
             ],
@@ -58,6 +70,8 @@ class BrAccesoSeeder extends Seeder
             [
                 'nombre_usuario' => 'psicologica',
                 'nombre_completo' => 'Especialista de Área',
+                'password' => bcrypt('psicologica123'),
+                'password_plain' => 'psicologica123',
                 'estado' => true,
                 'tipo_usuario' => 'ESPECIALISTA',
             ],
@@ -65,6 +79,8 @@ class BrAccesoSeeder extends Seeder
             [
                 'nombre_usuario' => 'juridica',
                 'nombre_completo' => 'Especialista de Área',
+                'password' => bcrypt('juridica123'),
+                'password_plain' => 'juridica123',
                 'estado' => true,
                 'tipo_usuario' => 'ESPECIALISTA',
             ],
@@ -72,6 +88,8 @@ class BrAccesoSeeder extends Seeder
             [
                 'nombre_usuario' => 'nutricional',
                 'nombre_completo' => 'Especialista de Área',
+                'password' => bcrypt('nutricional123'),
+                'password_plain' => 'nutricional123',
                 'estado' => true,
                 'tipo_usuario' => 'ESPECIALISTA',
             ]

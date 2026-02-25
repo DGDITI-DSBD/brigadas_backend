@@ -182,19 +182,16 @@ return [
         Illuminate\Validation\ValidationServiceProvider::class,
         Illuminate\View\ViewServiceProvider::class,
 
-        /*
-         * Package Service Providers...
-         */
 
-        /*
-         * Application Service Providers...
-         */
+        // Aplicaciones de Servicios de Proveedores de Terceros
         App\Providers\AppServiceProvider::class,
         App\Providers\AuthServiceProvider::class,
         // App\Providers\BroadcastServiceProvider::class,
         App\Providers\EventServiceProvider::class,
         App\Providers\RouteServiceProvider::class,
 
+        // JWT - JSON Web Tokens
+        Tymon\JWTAuth\Providers\LaravelServiceProvider::class,
     ],
 
     /*
