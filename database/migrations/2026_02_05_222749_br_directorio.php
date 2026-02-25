@@ -21,8 +21,8 @@ return new class extends Migration
             $table->boolean('estado');
             $table->timestamps();
 
-            $table->foreign('usuario_id')->references('id')->on('br_accesos')->onDelete('cascade');
-            $table->foreign('tipo_asesoria')->references('id')->on('br_cat_tipo_asesoria')->onDelete('cascade');
+            $table->foreign('usuario_id')->references('id')->on('br_accesos')->onDelete('set null');
+            $table->foreign('tipo_asesoria')->references('id')->on('br_cat_tipo_asesoria')->onDelete('set null');
         });
     }
 

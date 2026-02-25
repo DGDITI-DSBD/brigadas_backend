@@ -46,11 +46,32 @@ return new class extends Migration
 
 
 
-            // Foreign keys - Entidades federativas
+            // Foreign key - Entidades federativas
             $table->foreign('ct_entidad_federativa')
                 ->references('ct_entidad_federativa')
                 ->on('br_cat_entidades_federativas')
                 ->onDelete('restrict');
+
+            // Foreign key compuesta - Municipios
+            $table->foreign(['ct_entidad_federativa', 'ct_municipio'])
+                ->references(['ct_entidad_federativa', 'ct_municipio'])
+                ->on('br_cat_municipios')
+                ->onDelete('restrict');
+
+            // Foreign key compuesta - Localidades
+            $table->foreign(['ct_entidad_federativa', 'ct_municipio', 'ct_localidad'])
+                ->references(['ct_entidad_federativa', 'ct_municipio', 'ct_localidad'])
+                ->on('br_cat_localidades')
+                ->onDelete('restrict');
+
+            // Foreign key compuesta - Codigos postales
+            $table->foreign(['ct_entidad_federativa', 'ct_municipio',  'codigo_postal', 'colonia'])
+                ->references(['ct_entidad_federativa', 'ct_municipio', 'codigo_postal', 'colonia'])
+                ->on('br_cat_codigos_postales')
+                ->onDelete('restrict');
+
+            
+            
         });
     }
 

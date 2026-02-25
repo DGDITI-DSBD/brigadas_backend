@@ -57,4 +57,27 @@ class BrPaciente extends Model
         return $this->belongsTo(BrCatEntidadesFederativas::class, 'ct_entidad_federativa', 'ct_entidad_federativa');
     }
 
+    public function municipio()
+    {
+        return $this->belongsTo(CatMunicipio::class, 'ct_municipio', 'ct_municipio')
+            ->where('ct_entidad_federativa', $this->ct_entidad_federativa);
+    }
+
+    public function localidad()
+    {
+        return $this->belongsTo(CatLocalidad::class, 'ct_localidad', 'ct_localidad')
+            ->where('ct_entidad_federativa', $this->ct_entidad_federativa)
+            ->where('ct_municipio', $this->ct_municipio);
+    }
+
+    public function codigoPostalColonia()
+    {
+        return CatCodigosPostales::where('ct_entidad_federativa', $this->ct_entidad_federativa)
+            ->where('ct_municipio', $this->ct_municipio)
+            ->where('ct_localidad', $this->ct_localidad)
+            ->where('codigo_postal', $this->codigo_postal)
+            ->where('colonia', $this->colonia)
+            ->first();
+    }
+
 }

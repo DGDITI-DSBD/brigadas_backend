@@ -18,8 +18,8 @@ return new class extends Migration
             $table->unsignedBigInteger('tipo_asesoria_canaliza_id')->nullable();
             $table->timestamps();
 
-            $table->foreign('asesor_atendio_id')->references('id')->on('br_directorio')->onDelete('cascade');
-            $table->foreign('paciente_id')->references('id')->on('br_pacientes')->onDelete('cascade');
+            $table->foreign('asesor_atendio_id')->references('id')->on('br_directorio')->onDelete('set null');
+            $table->foreign('paciente_id')->references('id')->on('br_pacientes')->onDelete('set null');
             $table->foreign('tipo_asesoria_canaliza_id')->references('id')->on('br_cat_tipo_asesoria')->onDelete('set null');
         });
     }

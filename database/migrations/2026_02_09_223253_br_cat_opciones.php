@@ -15,7 +15,7 @@ return new class extends Migration
             $table->string('texto_descripcion');
             $table->timestamps();
 
-            $table->foreign('pregunta_id')->references('id')->on('br_cat_preguntas')->onDelete('cascade');
+            $table->foreign('pregunta_id')->references('id')->on('br_cat_preguntas')->onDelete('set null');
         });
     }
 

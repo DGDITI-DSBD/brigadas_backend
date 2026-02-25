@@ -14,8 +14,8 @@ return new class extends Migration
             $table->unsignedBigInteger('usuario_id');
             $table->unsignedBigInteger('privilegio_id');
 
-            $table->foreign('usuario_id')->references('id')->on('br_accesos')->onDelete('cascade');
-            $table->foreign('privilegio_id')->references('id')->on('br_cat_privilegios')->onDelete('cascade');
+            $table->foreign('usuario_id')->references('id')->on('br_accesos')->onDelete('set null');
+            $table->foreign('privilegio_id')->references('id')->on('br_cat_privilegios')->onDelete('set null');
         });
     }
 
