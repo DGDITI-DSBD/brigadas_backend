@@ -15,7 +15,7 @@ Route::prefix('v1')->group(function () {
 
     // --------- Rutas públicas ----------
     Route::prefix('auth')->group(function () {
-        Route::post('login', [authController::class, 'login'])->middleware(['throttle:5,1']);
+        Route::post('login', [authController::class, 'login']);
     });
 
     // --------- Rutas protegidas -----------
