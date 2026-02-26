@@ -33,7 +33,8 @@ class authController extends Controller
         $this -> construirINF = [];
         $this -> construirINF = [ 'token'        => $token ? $token : '',
                                   'member_auth'  => $token ? JWTAuth::user() : null,
-                                 'directorios'   => $token ? JWTAuth::user()->directorios()->get() : null
+                                  'directorios'   => $token ? JWTAuth::user()->directorios()->get() : null,
+                                  'permissions'   => $token ? JWTAuth::user()->usuarioPrivilegios()->get() : null
                                   ];
 
         $this -> tipo_hijo = null;
@@ -75,6 +76,7 @@ class authController extends Controller
             $this -> construirINF = ['token'        => (string)$token,
                                      'member_check' => $assignmentUser ? JWTAuth::user() : null,
                                      'directorios' => $assignmentUser ? JWTAuth::user()->directorios()->get() : null,
+                                     'permissions' => $assignmentUser ? JWTAuth::user()->usuarioPrivilegios()->get() : null,
                                      'status'       => $assignmentUser && JWTAuth::user() -> estado === 1 ? 'Authorization' : 'Not-Authorization'];
             
             if($assignmentUser){
@@ -125,7 +127,8 @@ class authController extends Controller
 
             $this -> construirINF = [
                 'member_check'  => $user,
-                'directorios' => $user ? $user->directoriosActivos()->get() : null
+                'directorios' => $user ? $user->directoriosActivos()->get() : null,
+                'permissions' => $user ? $user->usuarioPrivilegios()->get() : null
             ];
 
              return response()->json($this -> typeResponse($this -> tipo_response, $this -> tipo_hijo, $this -> construirINF));
@@ -143,7 +146,8 @@ class authController extends Controller
         return response()->json($this->typeResponse($this -> tipo_response, 'login_first_time', [
             'token'        => $request -> token,
             'member_auth'  => $user,
-            'directorios' => $user ? $user->directoriosActivos()->get() : null
+            'directorios' => $user ? $user->directoriosActivos()->get() : null,
+            'permissions' => $user ? $user->usuarioPrivilegios()->get() : null
         ]));
     }
 
