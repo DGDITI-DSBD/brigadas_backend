@@ -4,14 +4,14 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
-use App\Traits\auth_t;
+use App\Traits\carpeta_respuestas_t;
 use Tymon\JWTAuth\Facades\JWTAuth;
 use Log;
 
 class authController extends Controller
 {
 
-     use auth_t;
+     use carpeta_respuestas_t;
 
      protected $tipo_response = 'login';
      protected $tipo_hijo     = null;
