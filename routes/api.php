@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\authController;
+use App\Http\Controllers\reporteController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -24,6 +25,11 @@ Route::prefix('v1')->group(function () {
         // Auth protegidas
         Route::get('checking-user', [authController::class, 'checkingUser']);
         Route::post('update-first-login', [authController::class, 'updateFirstLogin']);
+
+        // Reportes
+        Route::prefix('reportes')->group(function () {
+            Route::get('especialista', [reporteController::class, 'reporte_individual_especialista']);
+        });
 
     });
 

@@ -38,7 +38,14 @@ trait carpeta_respuestas_t
                     'insercion_preguntas_respuestas_success'            => ['ok' => true, 'backlog' => 0, 'backdata' => $data, 'message_description' => 'Inserción de preguntas y respuestas realizada con éxito'],
                     'insercion_preguntas_respuestas_fail'               => ['ok' => false, 'backlog' => 1, 'backdata' => $data, 'message_description' => 'Falló en la inserción de preguntas y respuestas'],
 
-            ]
+            ],
+            'reportes' => [
+                'reporte_individual_success'   => ['ok' => true,  'backlog' => 0, 'backdata' => $data, 'message_description' => 'Reporte generado con éxito'],
+                'reporte_individual_sin_datos' => ['ok' => true,  'backlog' => 2, 'backdata' => $data, 'message_description' => 'Sin datos para el período solicitado'],
+                'reporte_individual_fail'      => ['ok' => false, 'backlog' => 1, 'backdata' => $data, 'message_description' => 'Error al generar el reporte'],
+                'especialista_no_directorio'   => ['ok' => false, 'backlog' => 3, 'backdata' => $data, 'message_description' => 'El especialista no tiene directorio asignado'],
+                'directorio_requerido'         => ['ok' => false, 'backlog' => 4, 'backdata' => $data, 'message_description' => 'Se requiere directorio_id para este rol'],
+            ],
         ];
 
         return $response[$fat][$children];
