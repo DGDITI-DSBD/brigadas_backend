@@ -27,6 +27,28 @@ class ReporteAvanzadoController extends Controller
     }
 
     // ─────────────────────────────────────────────────────────────────
+    // GET /api/v1/reportes/asesorias
+    // Devuelve todas las asesorías en formato plano para los reportes
+    // ─────────────────────────────────────────────────────────────────
+    public function listar_asesorias(Request $request)
+    {
+        try {
+            $desde = $request->get('desde');
+            $hasta = $request->get('hasta');
+
+            $asesorias = $this->service->listarAsesorias($desde, $hasta);
+
+            $key = $asesorias->isEmpty() ? 'asesorias_sin_datos' : 'asesorias_success';
+            return response()->json($this->typeResponse($this->respuesta_padre, $key, $asesorias->values()));
+
+        } catch (\Exception $e) {
+            return response()->json(
+                $this->typeResponse($this->respuesta_padre, 'reporte_individual_fail', ['error' => $e->getMessage()])
+            );
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────
     // GET /api/v1/reportes/especialista
     // Parámetros: directorio_id (para admin/coord), desde, hasta, municipio_id
     // ─────────────────────────────────────────────────────────────────
@@ -42,7 +64,7 @@ class ReporteAvanzadoController extends Controller
 
             // ── Resolver directorio según el rol ──────────────────────
             if ($tipo_usuario === 'ESPECIALISTA') {
-                $directorio = $user->directorios;
+                $directorio = $user->directorios()->first();
                 if (!$directorio) {
                     return response()->json(
                         $this->typeResponse($this->respuesta_padre, 'especialista_no_directorio', [])

@@ -296,6 +296,54 @@ class ReporteAvanzadoService
     }
 
     // ═══════════════════════════════════════════════════════════════
+    //  LISTADO DE ASESORÍAS — datos planos para todas las pestañas
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Retorna todas las asesorías con datos enriquecidos (especialista, municipio, edad, etc.)
+     * en formato plano listo para el frontend (Tablero, Por Día, Por Municipio, General, Adultos).
+     */
+    public function listarAsesorias(?string $desde = null, ?string $hasta = null): Collection
+    {
+        $query = BrAsesoria::with([
+                'directorio.tipoAsesoria:id,descripcion',
+                'paciente:id,primer_ap,segundo_ap,nombres,municipio,ct_municipio,fecha_nacimiento',
+            ])
+            ->whereNotNull('fecha_asesoria');
+
+        $this->applyDateFilters($query, $desde, $hasta);
+
+        $asesorias = $query->orderBy('fecha_asesoria', 'desc')->get();
+
+        return $asesorias->map(function ($a) {
+            $directorio = $a->directorio;
+            $paciente = $a->paciente;
+
+            $edad = 0;
+            if ($paciente && $paciente->fecha_nacimiento) {
+                try {
+                    $edad = (int) now()->diffInYears(\Carbon\Carbon::parse($paciente->fecha_nacimiento));
+                } catch (\Exception $e) {
+                    $edad = 0;
+                }
+            }
+
+            return [
+                'id'            => $a->id,
+                'fecha'         => $a->fecha_asesoria ? $a->fecha_asesoria->format('Y-m-d') : null,
+                'municipio'     => $paciente?->municipio ?? 'Sin municipio',
+                'especialidad'  => $directorio?->tipoAsesoria?->descripcion ?? 'Sin especialidad',
+                'especialista'  => $directorio
+                    ? trim($directorio->primer_ap_dir . ' ' . $directorio->segundo_ap_dir . ' ' . $directorio->nombres)
+                    : 'Sin especialista',
+                'brigadista'    => '',
+                'cantidad'      => 1,
+                'edad'          => $edad,
+            ];
+        });
+    }
+
+    // ═══════════════════════════════════════════════════════════════
     //  LISTADO DE ESPECIALISTAS — todos los KPIs en una sola llamada
     // ═══════════════════════════════════════════════════════════════
 
@@ -383,11 +431,10 @@ class ReporteAvanzadoService
         $dailyMap = collect($dailyRows)->keyBy('asesor_atendio_id');
 
         // ── 4. Municipio principal por especialista (mayor volumen) ──
-        // DISTINCT ON es sintaxis nativa de PostgreSQL.
         $munPrincipalRows = DB::select("
-            SELECT DISTINCT ON (a.asesor_atendio_id)
-                a.asesor_atendio_id,
-                p.municipio
+            SELECT DISTINCT ON (sub.asesor_atendio_id)
+                sub.asesor_atendio_id,
+                sub.municipio
             FROM (
                 SELECT a2.asesor_atendio_id,
                        p2.municipio,
@@ -398,9 +445,8 @@ class ReporteAvanzadoService
                   AND  p2.municipio     IS NOT NULL
                 {$dateAlias}
                 GROUP  BY a2.asesor_atendio_id, p2.municipio
-            ) a
-            JOIN br_pacientes p ON p.municipio = a.municipio
-            ORDER  BY a.asesor_atendio_id, a.cnt DESC
+            ) sub
+            ORDER  BY sub.asesor_atendio_id, sub.cnt DESC
         ", $bindings);
 
         $munPrincipalMap = collect($munPrincipalRows)->keyBy('asesor_atendio_id');

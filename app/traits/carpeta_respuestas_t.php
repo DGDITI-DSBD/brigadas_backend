@@ -1,6 +1,6 @@
 <?php
 
-namespace App\traits;
+namespace App\Traits;
 trait carpeta_respuestas_t
 {
 
@@ -55,6 +55,9 @@ trait carpeta_respuestas_t
                 // Exportación
                 'exportacion_success' => ['ok' => true, 'backlog' => 0, 'backdata' => $data, 'message_description' => 'Exportación completada'],
                 'exportacion_fail' => ['ok' => false, 'backlog' => 1, 'backdata' => $data, 'message_description' => 'Error en la exportación'],
+                // Asesorías generales (listado plano)
+                'asesorias_success' => ['ok' => true, 'backlog' => 0, 'backdata' => $data, 'message_description' => 'Asesorías obtenidas con éxito'],
+                'asesorias_sin_datos' => ['ok' => true, 'backlog' => 2, 'backdata' => $data, 'message_description' => 'No hay asesorías para el período'],
             ],
         ];
 
