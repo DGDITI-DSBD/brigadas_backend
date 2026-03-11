@@ -15,7 +15,8 @@ class accesoController extends Controller
     public function getListUsuario()
     {
         try{
-            $usuarios = BrAcceso::paginate(10);
+            $usuarios = BrAcceso::orderBy('id', 'asc')
+            ->paginate(perPage: 10);
 
             return response()->json(['data' => $usuarios], 200);
 
@@ -46,7 +47,8 @@ class accesoController extends Controller
                     //   ->orWhere('id', $search);
                 ;
             }
-            $usuarios = $query->get();
+            $usuarios = $query->orderBy('id', 'asc')
+            ->paginate(perPage: 10);
 
             return response()->json(['data' => $usuarios], 200);
 
@@ -175,12 +177,142 @@ class accesoController extends Controller
 
     public function UpdateUsuario(Request $request, $id)
     {
+        try {
+            DB::beginTransaction();
+            Log::info('Datos recibidos para actualizar usuario', $request->all());
 
+            $usuario        = BrAcceso::findOrFail($id);
+            $tipo_usuario   = $request['tipo_usuario'] ?? $usuario->tipo_usuario;
+
+            // Actualizar datos comunes
+            $usuario->nombre_usuario        = $request['nombre_usuario'] ?? $usuario->nombre_usuario;
+            $usuario->nombre_completo       = ($request['nombres'] ?? '') . ' ' . ($request['primer_ap_dir'] ?? '') . ' ' . ($request['segundo_ap_dir'] ?? '');
+            if ($request['password']) {
+                $usuario->password          = bcrypt($request['password']);
+                $usuario->password_plain    = $request['password'];
+            }
+            $usuario->tipo_usuario          = $tipo_usuario;
+            $usuario->estado                = $request['estado'] ?? $usuario->estado;
+            $usuario->save();
+
+            // Actualizar privilegios
+            UsuarioPrivilegio::where('usuario_id', $usuario->id)->delete();
+            switch ($tipo_usuario) {
+                case 'ADMINISTRADOR':
+                    $permisos = [1, 2, 3, 4];
+                    
+                    break;
+                case 'COORDINADOR':
+                    $permisos = [1, 2];
+                    break;
+                case 'ESPECIALISTA':
+                    $permisos = [1, 2];
+                    break;
+                default:
+                    $permisos = [];
+            }
+            $privilegios = UsuarioPrivilegio::insert(
+                array_map(function ($permiso_id) use ($usuario) {
+                    return [
+                        'usuario_id' => $usuario->id,
+                        'privilegio_id' => $permiso_id,
+                    ];
+                }, $permisos)
+            );
+
+            // Lógica para directorio según tipo_usuario
+            $directorio = BrDirectorio::where('usuario_id', $usuario->id)->first();
+
+            // Si el usuario pasa a ESPECIALISTA
+            if ($tipo_usuario === 'ESPECIALISTA') {
+                if ($directorio) {
+                    // Actualizar directorio existente
+                    $directorio->primer_ap_dir      = $request['primer_ap_dir']     ?? $directorio->primer_ap_dir;
+                    $directorio->segundo_ap_dir     = $request['segundo_ap_dir']    ?? $directorio->segundo_ap_dir;
+                    $directorio->nombres            = $request['nombres']           ?? $directorio->nombres;
+                    $directorio->telefono           = $request['telefono']          ?? $directorio->telefono;
+                    $directorio->email              = $request['email']             ?? $directorio->email;
+                    $directorio->tipo_asesoria      = $request['tipo_asesoria']     ?? $directorio->tipo_asesoria;
+                    $directorio->estado             = $request['estado']            ?? $directorio->estado;
+                    $directorio->save();
+                } else {
+                    // Crear directorio si no existe
+                    $directorio = BrDirectorio::create([
+                        'usuario_id'        => $usuario->id,
+                        'primer_ap_dir'     => $request['primer_ap_dir'] ?? null,
+                        'segundo_ap_dir'    => $request['segundo_ap_dir'] ?? null,
+                        'nombres'           => $request['nombres'] ?? null,
+                        'telefono'          => $request['telefono'] ?? null,
+                        'email'             => $request['email'] ?? null,
+                        'tipo_asesoria'     => $request['tipo_asesoria'] ?? null,
+                        'estado'            => $request['estado'] ?? null,
+                    ]);
+                }
+            } else {
+                // Si el usuario deja de ser especialista, cambia datos del directorio a "CAMBIO DE ROL" y estado a false
+                if ($directorio) {
+                    $directorio->primer_ap_dir  = '';
+                    $directorio->segundo_ap_dir = '';
+                    $directorio->nombres        = '';
+                    $directorio->telefono       = '';
+                    $directorio->email          = '';
+                    $directorio->tipo_asesoria  = 1;
+                    $directorio->estado         = false;
+                    $directorio->save();
+
+                    // si no se desea conservar el historial del directorio, se comenta el bloque anterior y se activa el siguiente para eliminar el registro del directorio
+                    // $directorio->delete();
+                }
+            }
+
+            DB::commit();
+            return response()->json([
+                'message' => 'Usuario actualizado exitosamente',
+                'data' => [
+                    'usuario'       => $usuario,
+                    'directorio'    => $directorio,
+                    'privilegios'   => $privilegios
+                ]
+            ], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Error al actualizar el usuario', 'message' => $e->getMessage()], 500);
+        }
     }
 
     public function DeleteUsuario($id)
     {
+        try {
+            DB::beginTransaction();
 
+            // Eliminación Directa [TABLA = DIRECTORIO - PRIVILEGIOS - ACCESO]
+            BrDirectorio::where('usuario_id', $id)->delete();
+            UsuarioPrivilegio::where('usuario_id', $id)->delete();
+            BrAcceso::where('id', $id)->delete();
+
+            // Eliminación Lógica [SOLO CAMBIA ESTATUS Y VALORES]
+            // TABLAS [ACCESO - DIRECTORIO - PRIVILEGIOS]
+            // DESCOMENTAR SI SOLO SE DESEA ELIMINACIÓN LÓGICA PARA MANTENER HISTÓRICO
+
+            // $usuario = BrAcceso::findOrFail($id);
+            // $usuario->estado = false;
+            // $usuario->save();
+
+            // $directorio = BrDirectorio::where('usuario_id', $id)->first();
+            // if ($directorio) {
+            //     $directorio->estado = false;
+            //     $directorio->save();
+            // }
+
+            // Actualizar todos los privilegios del usuario
+            // UsuarioPrivilegio::where('usuario_id', $id)->update(['privilegio_id' => 0]);
+
+            DB::commit();
+            return response()->json(['message' => 'Usuario eliminado exitosamente', 'id' => $id], 200);
+        } catch (\Exception $e) {
+            DB::rollBack();
+            return response()->json(['error' => 'Error al eliminar el usuario', 'message' => $e->getMessage()], 500);
+        }
     }
 
 }
