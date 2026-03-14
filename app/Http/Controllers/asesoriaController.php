@@ -382,31 +382,35 @@ class asesoriaController extends Controller
 
     public function canalizar_asesoria(Request $request, $id){
 
-    try{
-        $asesoria = BrAsesoria::find($id);
-        if(!$asesoria){
-            $this -> respuesta_hijo = 'consulta_asesoria_sin_datos';
-            $this -> construir_respuesta = [];
+        try{
+            $asesoria = BrAsesoria::find($id);
+            if(!$asesoria){
+                $this -> respuesta_hijo = 'consulta_asesoria_sin_datos';
+                $this -> construir_respuesta = [];
+                return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
+            }
+
+            $validatedData = $request->validate([
+                'canalizacion_id' => 'required|exists:br_cat_canalizaciones,id',
+                'observaciones'   => 'nullable|string|max:1000',
+            ]);
+
+            $asesoria->update([
+                'canalizacion_id' => $validatedData['canalizacion_id'],
+                'observaciones'   => $validatedData['observaciones'] ?? null,
+                'estado'         => 'CANALIZADA', // Cambiar el estado a canalizada
+            ]);
+
+            $this -> respuesta_hijo = 'canalizacion_asesoria_success';
+            $this -> construir_respuesta = ['message' => 'Asesoría canalizada exitosamente.'];
+            return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
+        
+        }catch(\Exception $e){
+            $this -> respuesta_hijo = 'canalizacion_asesoria_fail';
+            $this -> construir_respuesta = ['error' => 'Error al canalizar asesoría: ' . $e->getMessage()];
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
         }
-
-        $validatedData = $request->validate([
-            'canalizacion_id' => 'required|exists:br_cat_canalizaciones,id',
-            'observaciones'   => 'nullable|string|max:1000',
-        ]);
-
-        $asesoria->update([
-            'canalizacion_id' => $validatedData['canalizacion_id'],
-            'observaciones'   => $validatedData['observaciones'] ?? null,
-            'estado'         => 'CANALIZADA', // Cambiar el estado a canalizada
-        ]);
-
-        $this -> respuesta_hijo = 'canalizacion_asesoria_success';
-        $this -> construir_respuesta = ['message' => 'Asesoría canalizada exitosamente.'];
-        return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
-    
-    }
-    }
+}
                         
     public function estado_update_asesoria(Request $request, $id){
         try{

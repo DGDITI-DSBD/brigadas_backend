@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\accesoController;
 use App\Http\Controllers\authController;
+use App\Http\Controllers\catalogosController;
 
 /************************************************
  * Rutas de autenticación
@@ -33,6 +34,14 @@ Route::prefix('v1')->group(function () {
         Route::put('update-usuarios/{id}', [accesoController::class, 'UpdateUsuario']);
         Route::delete('delete-usuarios/{id}', [accesoController::class, 'DeleteUsuario']);
 
+    });
+
+    Route::group(['middleware' => 'auth:api', 'prefix' => 'catalogos'], function () {
+        Route::post('/preguntas_opciones', [catalogosController::class, 'getCuestionarioAsesoria']);
+    });
+    //Route::post('/preguntas_opciones', [catalogosController::class, 'getCuestionarioAsesoria']);
+    Route::group(['middleware' => 'auth:api', 'prefix' => 'asesorias'], function () {
+        
     });
 
 });

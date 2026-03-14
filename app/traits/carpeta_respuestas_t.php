@@ -38,6 +38,11 @@ trait carpeta_respuestas_t
                     'insercion_preguntas_respuestas_success'            => ['ok' => true, 'backlog' => 0, 'backdata' => $data, 'message_description' => 'Inserción de preguntas y respuestas realizada con éxito'],
                     'insercion_preguntas_respuestas_fail'               => ['ok' => false, 'backlog' => 1, 'backdata' => $data, 'message_description' => 'Falló en la inserción de preguntas y respuestas'],
 
+            ],
+            'catalogos' => [
+                'consulta_success'              => ['ok' => true, 'backlog' => 0, 'backdata' => $data, 'message_description' => 'Consulta realizada con éxito'], 
+                'consulta_sin_datos'            => ['ok' => true, 'backlog' => 2, 'backdata' => $data, 'message_description' => 'La consulta no devolvió ningún dato'],
+                'consulta_fail'                 => ['ok' => false,'backlog' => 1, 'backdata' => $data, 'message_description' => 'Falló en la consulta del dato'],
             ]
         ];
 
