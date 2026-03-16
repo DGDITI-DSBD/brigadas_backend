@@ -83,16 +83,16 @@ class asesoriaController extends Controller
 
                 case 'ESPECIALISTA':
 
-                    $_has_directorio = $this->Auth->user()->directorios;
+                    $_has_directorio = $this->Auth->user()->directorio;
                     
-                    if(!$_has_directorio || $_has_directorio->isEmpty()){
+                    if(!$_has_directorio){
                         $this -> respuesta_padre = 'directorios';
                         $this -> respuesta_hijo = 'usuario_not_directorio';
                         $this -> construir_respuesta = [];
                     }
 
                     $beneficiaria_asesorias = BrPaciente::whereHas('asesorias', function($query) use ($_has_directorio) {
-                        $query->where('asesor_atendio_id', $_has_directorio->first()->id);
+                        $query->where('asesor_atendio_id', $_has_directorio->id);
                     })
                     ->with(['asesorias' => function($query) use ($_has_directorio) {
                         $query->where('asesor_atendio_id', $_has_directorio->first()->id)
@@ -148,7 +148,7 @@ class asesoriaController extends Controller
                         ->first();
                         break;
                     case 'ESPECIALISTA':
-                        $_directorio = $this->Auth->user()->directorios->first();
+                        $_directorio = $this->Auth->user()->directorio;
                         $get_asesoria_beneficiaria = BrPaciente::with([
                             'asesorias' => function($query) use ($id_beneficiaria, $_directorio){
                                 $query->where('paciente_id', $id_beneficiaria)

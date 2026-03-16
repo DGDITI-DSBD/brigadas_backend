@@ -35,9 +35,14 @@ class BrAcceso extends Model implements JWTSubject, Authenticatable
         return $this->hasMany(UsuarioPrivilegio::class, 'usuario_id');
     }
 
-    public function directorios()
+    public function directorio()
     {
-        return $this->belongsTo(BrDirectorio::class, 'id', 'usuario_id');
+        return $this->hasOne(BrDirectorio::class, 'usuario_id');
+    }
+
+    public function directorioActivo()
+    {
+        return $this->hasOne(BrDirectorio::class, 'usuario_id')->where('estado', true);
     }
 
     public function getJWTIdentifier()
