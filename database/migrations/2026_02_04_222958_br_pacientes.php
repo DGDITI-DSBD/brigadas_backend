@@ -15,11 +15,12 @@ return new class extends Migration
             $table->string('primer_ap', 80);
             $table->string('segundo_ap', 80);
             $table->string('nombres', 80);
+            $table->integer('edad')->nullable();
             $table->date('fecha_nacimiento')->comment('DD/MM/AAAA');
             $table->char('genero', 1)->comment('M/H VALIDACIÓN LOGICA (PADRON DE ALIMENTACIÓN PARA EL BIENESTAR');
             $table->unsignedBigInteger('ct_edo_civil');
             $table->unsignedBigInteger('tp_id_oficial');
-            $table->integer('id_oficial');
+            $table->string('id_oficial', 20);
             $table->integer('ct_ent_nac');
             $table->string('curp', 18);
             $table->string('calle', 150);
@@ -35,6 +36,7 @@ return new class extends Migration
             $table->string('municipio', 50);
             $table->unsignedBigInteger('ct_entidad_federativa');
             $table->string('entidad_federativa', 50);
+            $table->unsignedBigInteger('codigo_postal_id');
             $table->string('codigo_postal', 5);
             $table->string('telefono', 10);
             $table->string('celular', 10);
@@ -43,6 +45,7 @@ return new class extends Migration
             $table->unsignedBigInteger('ct_nacionalidad');
             $table->string('estado_padron')->comment('BENEFICIARIO, CAPTACION');
             $table->boolean('requiere_seguimiento')->comment('true=si, false=no');
+            $table->timestamps();
 
 
 
@@ -65,8 +68,8 @@ return new class extends Migration
                 ->onDelete('restrict');
 
             // Foreign key compuesta - Codigos postales
-            $table->foreign(['ct_entidad_federativa', 'ct_municipio',  'codigo_postal', 'colonia'])
-                ->references(['ct_entidad_federativa', 'ct_municipio', 'codigo_postal', 'colonia'])
+            $table->foreign(['ct_entidad_federativa', 'ct_municipio',  'codigo_postal_id'])
+                ->references(['ct_entidad_federativa', 'ct_municipio', 'ct_cp'])
                 ->on('br_cat_codigos_postales')
                 ->onDelete('restrict');
 

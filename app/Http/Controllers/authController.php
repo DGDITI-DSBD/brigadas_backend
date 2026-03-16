@@ -31,9 +31,12 @@ class authController extends Controller
         $obtieneCRD = $request -> only('nombre_usuario', 'password');
         $token = JWTAuth::attempt($obtieneCRD);
         $this -> construirINF = [];
-        $this -> construirINF = [ 'token'        => $token ? $token : '',
-                                  'member_auth'  => $token ? JWTAuth::user() : null,
-                                  'directorios'   => $token ? JWTAuth::user()->directorios()->get() : null,
+        
+        $this -> construirINF = [ 'token'         => $token ? $token : '',
+                                  'member_auth'   => $token ? JWTAuth::user() : null,
+                                  'directorios'   => $token ? JWTAuth::user()->directorios : null,
+                                  'tipo_profesion'=> $token ? !is_null(JWTAuth::user()->directorios) || !empty(JWTAuth::user()->directorios)
+                                                              ? JWTAuth::user()->directorios->tipoAsesoria : null : null,
                                   'permissions'   => $token ? JWTAuth::user()->usuarioPrivilegios()->get() : null
                                   ];
 
