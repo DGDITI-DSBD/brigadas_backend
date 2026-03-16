@@ -18,7 +18,7 @@ class authController extends Controller
      protected $construirINF  = [];
      protected $cookie;
 
-     protected function login(Request $request){
+     public function login(Request $request){
 
             /* 
                 variables:
@@ -68,7 +68,7 @@ class authController extends Controller
 
     }
 
-    protected function checkingUser(){
+    public function checkingUser(){
         
             
             $token          = JWTAuth::getToken();
@@ -146,12 +146,6 @@ class authController extends Controller
         }
       
 
-        return response()->json($this->typeResponse($this -> tipo_response, 'login_first_time', [
-            'token'        => $request -> token,
-            'member_auth'  => $user,
-            'directorios' => $user ? $user->directoriosActivos()->get() : null,
-            'permissions' => $user ? $user->usuarioPrivilegios()->get() : null
-        ]));
     }
 
  
