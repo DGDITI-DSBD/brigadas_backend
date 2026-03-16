@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use Log;
+
 class BrPaciente extends Model
 {
     use HasFactory;
@@ -39,6 +41,7 @@ class BrPaciente extends Model
         'municipio',
         'ct_entidad_federativa',
         'entidad_federativa',
+        'codigo_postal_id',
         'codigo_postal',
         'telefono',
         'celular',
@@ -48,6 +51,9 @@ class BrPaciente extends Model
         'estado_padron',
         'requiere_seguimiento',
     ];
+
+    public $timestamps = true;
+    public $incrementing = true;
 
     public function asesorias()
     {
@@ -75,6 +81,7 @@ class BrPaciente extends Model
 
     public function codigoPostalColonia()
     {
+
         return CatCodigosPostales::where('ct_entidad_federativa', $this->ct_entidad_federativa)
             ->where('ct_municipio', $this->ct_municipio)
             ->where('ct_localidad', $this->ct_localidad)
@@ -83,29 +90,37 @@ class BrPaciente extends Model
             ->first();
     }
 
-    public function scope_searchByParamsPacientes($query, $params)
+    public function scopeSearchByParamsPacientes($query, $params)
     {
+        Log::info('Aplicando scopeSearchByParamsPacientes con parámetros: ' . json_encode($params));
         if (isset($params['nombre_completo']) && !empty($params['nombre_completo'])) {
             $query->whereRaw("CONCAT(primer_ap, ' ', segundo_ap, ' ', nombres) LIKE ?", ['%' . $params['nombre_completo'] . '%']);
         }
-        if (!is_null($params['folio_relacionado']) && !empty($params['folio_relacionado'])) {
+        if (isset($params['folio_relacionado']) && !is_null($params['folio_relacionado']) && !empty($params['folio_relacionado'])) {
             $query->orWhere('folio_relacionado', 'LIKE', '%' . $params['folio_relacionado'] . '%');
         }
-        if (!is_null($params['curp']) && !empty($params['curp'])) {
+        if (isset($params['curp']) && !is_null($params['curp']) && !empty($params['curp'])) {
             $query->orWhere('curp', 'LIKE', '%' . $params['curp'] . '%');
         }
         return $query;
     }
 
-    public function scope_searchByProfesionista($query, $directorio_id)
+    public function scopeSearchByProfesionista($query, $directorio_id)
     {
+        if(is_null($directorio_id)) {
+            return $query;
+        }
         return $query->whereHas('asesorias', function ($q) use ($directorio_id) {
             $q->where('asesor_atendio_id', $directorio_id);
         });
+
     }
 
-    public function scope_searchByEspecialisacion($query, $especializacion_id)
+    public function scopeSearchByEspecialisacion($query, $especializacion_id)
     {
+        if(is_null($especializacion_id)) {
+            return $query;
+        }
         return $query->whereHas('asesorias', function ($q) use ($especializacion_id) {
             $q->whereHas('directorio', function ($q2) use ($especializacion_id) {
                 $q2->where('tipo_asesoria', $especializacion_id);
@@ -113,13 +128,19 @@ class BrPaciente extends Model
         });
     }
 
-    public function scope_searchByMunicipio($query, $municipio_id)
+    public function scopeSearchByMunicipio($query, $municipio_id)
     {
+        if(is_null($municipio_id)) {
+            return $query;
+        }
         return $query->where('ct_municipio', $municipio_id);
     }
 
-    public function scope_searchByLocalidad($query, $localidad_id)
+    public function scopeSearchByLocalidad($query, $localidad_id)
     {
+        if(is_null($localidad_id)) {
+            return $query;
+        }
         return $query->where('ct_localidad', $localidad_id);
     }
 
