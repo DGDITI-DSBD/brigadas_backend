@@ -36,7 +36,7 @@ return new class extends Migration
             $table->string('municipio', 50);
             $table->unsignedBigInteger('ct_entidad_federativa');
             $table->string('entidad_federativa', 50);
-            $table->unsignedBigInteger('codigo_postal_id');
+            $table->unsignedBigInteger('codigo_postal_id')->default(1);
             $table->string('codigo_postal', 5);
             $table->string('telefono', 10);
             $table->string('celular', 10);

@@ -34,9 +34,8 @@ class authController extends Controller
         
         $this -> construirINF = [ 'token'         => $token ? $token : '',
                                   'member_auth'   => $token ? JWTAuth::user() : null,
-                                  'directorios'   => $token ? JWTAuth::user()->directorios : null,
-                                  'tipo_profesion'=> $token ? !is_null(JWTAuth::user()->directorios) || !empty(JWTAuth::user()->directorios)
-                                                              ? JWTAuth::user()->directorios->tipoAsesoria : null : null,
+                                  'directorios'   => $token ? JWTAuth::user()->directorio : null,
+                                  'tipo_profesion'=> $token ? JWTAuth::user()->directorio?->tipoAsesoria : null,
                                   'permissions'   => $token ? JWTAuth::user()->usuarioPrivilegios()->get() : null
                                   ];
 
@@ -75,10 +74,10 @@ class authController extends Controller
             Log::info("TOKEN", [$token]);
             if($token){
             $assignmentUser = JWTAuth::toUser($token);
-            Log::info("directorio", [$assignmentUser ? $assignmentUser->directorios()->get() : null]);
+            Log::info("directorio", [$assignmentUser ? $assignmentUser->directorio : null]);
             $this -> construirINF = ['token'        => (string)$token,
                                      'member_check' => $assignmentUser ? JWTAuth::user() : null,
-                                     'directorios' => $assignmentUser ? JWTAuth::user()->directorios()->get() : null,
+                                     'directorios' => $assignmentUser ? JWTAuth::user()->directorio : null,
                                      'permissions' => $assignmentUser ? JWTAuth::user()->usuarioPrivilegios()->get() : null,
                                      'status'       => $assignmentUser && JWTAuth::user() -> estado === 1 ? 'Authorization' : 'Not-Authorization'];
             
@@ -130,7 +129,7 @@ class authController extends Controller
 
             $this -> construirINF = [
                 'member_check'  => $user,
-                'directorios' => $user ? $user->directoriosActivos()->get() : null,
+                'directorios' => $user ? $user->directorioActivo : null,
                 'permissions' => $user ? $user->usuarioPrivilegios()->get() : null
             ];
 

@@ -64,7 +64,7 @@ class ReporteAvanzadoController extends Controller
 
             // ── Resolver directorio según el rol ──────────────────────
             if ($tipo_usuario === 'ESPECIALISTA') {
-                $directorio = $user->directorios()->first();
+                $directorio = $user->directorio;
                 if (!$directorio) {
                     return response()->json(
                         $this->typeResponse($this->respuesta_padre, 'especialista_no_directorio', [])
