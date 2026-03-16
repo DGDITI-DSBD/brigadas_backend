@@ -34,7 +34,6 @@ class catalogosController extends Controller
         try{
 
             $beneficiarias_asesorias = null;
-            Log::info("Obteniendo cuestionario para asesoría tipo ID: " . $request -> asesoria_tipo_id);
 
             $getPreguntasRespuestaPerAsesoria = BrCatPregunta::with('opciones')
             ->where('asesoria_tipo_id', $request -> asesoria_tipo_id)

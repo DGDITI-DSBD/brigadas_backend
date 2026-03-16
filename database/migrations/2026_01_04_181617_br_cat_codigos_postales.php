@@ -21,7 +21,7 @@ return new class extends Migration
 
 
             // Índice único compuesto para la relación con br_pacientes
-            $table->unique(['ct_entidad_federativa', 'ct_municipio', 'codigo_postal', 'colonia']);
+            $table->unique(['ct_entidad_federativa', 'ct_municipio', 'ct_cp']);
 
             // Foreign key compuesta - Municipios
             $table->foreign(['ct_entidad_federativa', 'ct_municipio'])
