@@ -36,6 +36,8 @@ Route::prefix('v1')->group(function () {
             Route::get('especialista', [ReporteAvanzadoController::class, 'reporte_individual_especialista']);
             Route::get('especialistas', [ReporteAvanzadoController::class, 'listar_especialistas']);
             Route::get('exportar', [ReporteAvanzadoController::class, 'exportar_csv']);
+            Route::get('tablero/pdf', [ReporteAvanzadoController::class, 'tablero_pdf']);
+            Route::get('chart/pdf', [ReporteAvanzadoController::class, 'chart_pdf']);
         });
 
     });

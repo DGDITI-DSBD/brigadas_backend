@@ -300,6 +300,76 @@ class ReporteAvanzadoService
     // ═══════════════════════════════════════════════════════════════
 
     /**
+     * Prepara datos agregados para el PDF del Tablero General.
+     * Usado por el endpoint de exportación PDF.
+     */
+    public function prepararDatosTablero(?string $desde = null, ?string $hasta = null): array
+    {
+        $data = $this->listarAsesorias($desde, $hasta)->toArray();
+
+        $municipios = array_values(array_unique(array_column($data, 'municipio')));
+        $especialidades = array_values(array_unique(array_column($data, 'especialidad')));
+        $especialistas = array_values(array_unique(array_column($data, 'especialista')));
+        $brigadistas = array_values(array_unique(array_filter(array_column($data, 'brigadista'))));
+
+        $total = array_sum(array_column($data, 'cantidad'));
+
+        $byEsp = [];
+        foreach ($especialidades as $e) {
+            $t = array_sum(array_map(fn($d) => $d['especialidad'] === $e ? $d['cantidad'] : 0, $data));
+            $byEsp[] = ['especialidad' => $e, 'total' => $t];
+        }
+        usort($byEsp, fn($a, $b) => $b['total'] <=> $a['total']);
+
+        $byMun = [];
+        foreach ($municipios as $m) {
+            $t = array_sum(array_map(fn($d) => $d['municipio'] === $m ? $d['cantidad'] : 0, $data));
+            $byMun[] = ['municipio' => $m, 'total' => $t];
+        }
+        usort($byMun, fn($a, $b) => $b['total'] <=> $a['total']);
+
+        $mesesSet = array_values(array_unique(array_filter(array_map(fn($d) => isset($d['fecha']) ? substr($d['fecha'], 0, 7) : null, $data))));
+        sort($mesesSet);
+
+        $mesLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        $monthData = [];
+        foreach ($mesesSet as $full) {
+            [$y, $mo] = explode('-', $full);
+            $label = $mesLabels[(int) $mo - 1] ?? $mo;
+            $recs = array_filter($data, fn($d) => isset($d['fecha']) && str_starts_with($d['fecha'], $full));
+            $byEspM = [];
+            foreach ($especialidades as $e) {
+                $byEspM[$e] = array_sum(array_map(fn($r) => $r['especialidad'] === $e ? $r['cantidad'] : 0, $recs));
+            }
+            $monthData[] = [
+                'mes' => $label,
+                'full' => $full,
+                'byEsp' => $byEspM,
+                'total' => array_sum(array_column($recs, 'cantidad')),
+            ];
+        }
+
+        $grandTotal = array_sum(array_column($monthData, 'total'));
+        $dateRange = count($monthData) > 0
+            ? ($monthData[0]['mes'] . ' – ' . $monthData[count($monthData) - 1]['mes'])
+            : 'Sin datos';
+
+        return [
+            'total' => $total,
+            'municipios' => $municipios,
+            'especialidades' => $especialidades,
+            'especialistas' => $especialistas,
+            'brigadistas' => $brigadistas,
+            'byEsp' => $byEsp,
+            'byMun' => $byMun,
+            'monthData' => $monthData,
+            'grandTotal' => $grandTotal,
+            'dateRange' => $dateRange,
+            'generado' => now()->format('d/m/Y H:i'),
+        ];
+    }
+
+    /**
      * Retorna todas las asesorías con datos enriquecidos (especialista, municipio, edad, etc.)
      * en formato plano listo para el frontend (Tablero, Por Día, Por Municipio, General, Adultos).
      */
