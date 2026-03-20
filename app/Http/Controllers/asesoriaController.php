@@ -30,6 +30,51 @@ class asesoriaController extends Controller
         $this->construir_respuesta = [];
     }
 
+    public function asesoria_beneficiaria(Request $request){
+         try{
+
+             //$_type_user = $this->Auth->user()->tipo_usuario;
+             $this -> respuesta_padre = 'asesorias';
+             $_type_user = 'ADMINISTRADOR';
+             
+             $paramsSearch = $request->params;
+             $asesorias = BrAsesoria::with(['paciente', 'preguntasRespuestas', 'preguntasRespuestas.pregunta', 'asesoria_canalizacion' ,'directorio', 'directorio.tipoAsesoria']);
+             $deepQuery = null;
+             if($_type_user === 'ADMINISTRADOR' || $_type_user === 'COORDINADOR'){
+
+                
+                $deepQuery = $asesorias->searchByParamsPacientes($paramsSearch ?? [])
+                                       ->searchByProfesionista($request->get('directorio_id' ) ?? null);
+                            
+            } else {
+
+                //$deepUser = $_type_user->directorio->id;
+                $deepUser = 3;
+
+                $deepQuery = $asesorias->searchByParamsPacientes($paramsSearch ?? [])
+                                        ->searchByProfesionista($deepUser);
+
+            }
+
+            if($deepQuery->get()->isEmpty()){
+                $this -> respuesta_hijo = 'consulta_sin_datos';
+                $this -> construir_respuesta = [];
+            }
+                $this -> respuesta_hijo = 'consulta_exitosa';
+                $this -> construir_respuesta = $deepQuery
+                ->orderBy('fecha_asesoria', 'desc')
+                ->get();
+                return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
+
+         }catch(Exception $e){
+
+            $this -> respuesta_hijo = 'consulta_fail';
+            $this -> construir_respuesta = ['error' => $e -> getMessage()];
+            return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
+
+         }
+    }
+
     public function beneficiaria_asesoria(Request $request){
         try{
 
@@ -555,9 +600,7 @@ class asesoriaController extends Controller
                 'ct_ent_nac', 'calle', 'num_ext', 'num_int', 'entre_calle', 'y_calle', 'otra_referencia', 
                 'colonia', 'ct_localidad', 'localidad', 'ct_entidad_federativa', 'entidad_federativa', 'codigo_postal_id', 'codigo_postal', 
                 'telefono', 'celular', 'email', 'ct_nacionalidad')
-                ->folioRelacionado($request->get('folio_relacionado') ?? null)
-                ->curp($request->get('curp') ?? null)
-                ->nombreCompleto($request->get('nombre') ?? null)
+                ->searching($request->get('search') ?? null)
                 ->take(5)
                 ->get();
 
@@ -746,6 +789,7 @@ class asesoriaController extends Controller
                 'asesoria.asesor_atendio_id'         => 'required|exists:br_directorio,id',
                 'asesoria.estado_asesoria'           => 'required|in:ABIERTA,CERRADA,CANALIZADA',
                 'asesoria.tipo_asesoria_canaliza_id' => 'nullable|exists:br_cat_tipo_asesorias,id',
+                'asesoria.fecha_asesoria'            => 'nullable|date',
 
                 // Datos de preguntas y respuestas
                 'respuestas.pregunta_id'       => 'required|array',
@@ -838,6 +882,7 @@ class asesoriaController extends Controller
                     'estado_asesoria'           => $asesoriaData['estado_asesoria'],
                     'estado_registro'           => true,
                     'tipo_asesoria_canaliza_id' => $asesoriaData['tipo_asesoria_canaliza_id'] ?? null,
+                    'fecha_asesoria'            => $asesoriaData['fecha_asesoria'] ?? now(),
                 ]);
 
                 Log::info('Asesoría creada con ID: ' . $asesoria->id);

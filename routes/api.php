@@ -59,9 +59,11 @@ Route::prefix('v1')->group(function () {
     });
     
     //Route::post('/preguntas_opciones', [catalogosController::class, 'getCuestionarioAsesoria']);
+    Route::get('/asesorias-beneficiarias', [asesoriaController::class, 'asesoria_beneficiaria']);
     Route::group(['middleware' => 'auth:api', 'prefix' => 'asesorias'], function () {
         // Listar beneficiarias con asesorías según usuario logueado
         Route::get('/beneficiarias', [asesoriaController::class, 'beneficiaria_asesoria']);
+        Route::get('/relacion-beneficiarias', [asesoriaController::class, 'asesoria_beneficiaria']);
         
         // CRUD de Asesorías
         Route::post('/', [asesoriaController::class, 'create_asesoria']);
