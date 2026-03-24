@@ -932,6 +932,7 @@ class asesoriaController extends Controller
         }catch(\Illuminate\Validation\ValidationException $e){
             $this -> respuesta_hijo = 'validacion_asesoria_fail';
             $this -> construir_respuesta = ['errors' => $e->errors()];
+            Log::info('Error de validación al crear asesoría completa: ' . json_encode($e->errors()) . ' | Request: ' . json_encode($request->all()));
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 422);
         }catch(\Exception $e){
             Log::error('Error al crear asesoría completa: ' . $e->getMessage() . ' | Request: ' . json_encode($request->all()));

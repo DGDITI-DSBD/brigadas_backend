@@ -56,6 +56,9 @@ Route::prefix('v1')->group(function () {
         Route::post('/preguntas_opciones', [catalogosController::class, 'getCuestionarioAsesoria']);
         Route::get('/beneficiarias-historico', [asesoriaController::class, 'get_beneficiarias_historico']);
         Route::post('/importar-paciente', [asesoriaController::class, 'import_padron_historico']);
+
+        Route::get('/directorio-especialistas', [catalogosController::class, 'getDirectorioEspecialistas']);
+        Route::get('/catalogos-generales', [catalogosController::class, 'get_catalogos_generales']);
     });
     
     //Route::post('/preguntas_opciones', [catalogosController::class, 'getCuestionarioAsesoria']);
