@@ -33,9 +33,9 @@ class asesoriaController extends Controller
     public function asesoria_beneficiaria(Request $request){
          try{
 
-             //$_type_user = $this->Auth->user()->tipo_usuario;
+             $_type_user = $this->Auth->user()->tipo_usuario;
              $this -> respuesta_padre = 'asesorias';
-             $_type_user = 'ADMINISTRADOR';
+             //$_type_user = 'ADMINISTRADOR';
              
              $paramsSearch = $request->params;
              $asesorias = BrAsesoria::with(['paciente', 'preguntasRespuestas', 'preguntasRespuestas.pregunta', 'asesoria_canalizacion' ,'directorio', 'directorio.tipoAsesoria']);
@@ -48,8 +48,8 @@ class asesoriaController extends Controller
                             
             } else {
 
-                //$deepUser = $_type_user->directorio->id;
-                $deepUser = 3;
+                $deepUser = $_type_user->directorio->id;
+                //$deepUser = 3;
 
                 $deepQuery = $asesorias->searchByParamsPacientes($paramsSearch ?? [])
                                         ->searchByProfesionista($deepUser);
@@ -937,6 +937,232 @@ class asesoriaController extends Controller
         }catch(\Exception $e){
             Log::error('Error al crear asesoría completa: ' . $e->getMessage() . ' | Request: ' . json_encode($request->all()));
             $this -> respuesta_hijo = 'creacion_asesoria_completa_fail';
+            $this -> construir_respuesta = ['error' => $e -> getMessage()];
+            return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 500);
+        }
+    }
+
+    /**
+     * Actualizar datos del paciente/beneficiaria
+     */
+    public function update_paciente(Request $request, $id){
+        try{
+            $this -> respuesta_padre = 'pacientes';
+
+            $paciente = BrPaciente::find($id);
+            if(!$paciente){
+                $this -> respuesta_hijo = 'consulta_paciente_sin_datos';
+                $this -> construir_respuesta = [];
+                return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 404);
+            }
+
+            $validatedData = $request->validate([
+                'folio_relacionado'      => 'sometimes|string',
+                'primer_ap'              => 'sometimes|string',
+                'segundo_ap'             => 'nullable|string',
+                'nombres'                => 'sometimes|string',
+                'fecha_nacimiento'       => 'nullable|date',
+                'edad'                   => 'nullable|integer',
+                'genero'                 => 'nullable|string',
+                'ct_edo_civil'           => 'nullable|integer',
+                'ct_gdo_estudios'        => 'nullable|integer',
+                'tp_id_oficial'          => 'nullable|integer',
+                'id_oficial'             => 'nullable|string',
+                'ct_ent_nac'             => 'nullable|integer',
+                'curp'                   => 'nullable|string',
+                'calle'                  => 'nullable|string',
+                'num_ext'                => 'nullable|string',
+                'num_int'                => 'nullable|string',
+                'entre_calle'            => 'nullable|string',
+                'y_calle'                => 'nullable|string',
+                'otra_referencia'        => 'nullable|string',
+                'colonia'                => 'nullable|string',
+                'ct_municipio'           => 'nullable|integer',
+                'municipio'              => 'nullable|string',
+                'ct_localidad'           => 'nullable',
+                'localidad'              => 'nullable|string',
+                'ct_entidad_federativa'  => 'nullable|integer',
+                'entidad_federativa'     => 'nullable|string',
+                'codigo_postal_id'       => 'nullable|integer|exists:br_cat_codigos_postales,ct_cp',
+                'codigo_postal'          => 'nullable|string',
+                'telefono'               => 'nullable|string',
+                'celular'                => 'nullable|string',
+                'email'                  => 'nullable|string|email',
+                'ct_nacionalidad'        => 'nullable|integer',
+            ]);
+
+            $paciente->update($validatedData);
+
+            $this -> respuesta_hijo = 'actualizacion_paciente_success';
+            $this -> construir_respuesta = $paciente->fresh();
+            return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
+
+        }catch(\Illuminate\Validation\ValidationException $e){
+            $this -> respuesta_hijo = 'validacion_paciente_fail';
+            $this -> construir_respuesta = ['errors' => $e->errors()];
+            Log::error('Error de validación al actualizar paciente: ' . json_encode($e->errors()) . ' | Request: ' . json_encode($request->all()));
+            return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 422);
+        }catch(\Exception $e){
+            Log::error('Error al actualizar paciente: ' . $e->getMessage() . ' | Request: ' . json_encode($request->all()));
+            $this -> respuesta_hijo = 'actualizacion_paciente_fail';
+            $this -> construir_respuesta = ['error' => $e -> getMessage()];
+            return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 500);
+        }
+    }
+
+    /**
+     * Actualizar asesoría completa con transacción atómica
+     * Actualiza: datos del paciente, datos de asesoría y preguntas-respuestas
+     * Todo en una transacción para evitar inconsistencias
+     */
+    public function actualizar_asesoria_completa(Request $request, $id_asesoria){
+        try{
+            $this -> respuesta_padre = 'asesorias';
+
+            Log::info('Iniciando actualización de asesoría completa con ID: ' . $id_asesoria . ' | Datos: ' . json_encode($request->all()));
+
+            // Buscar la asesoría
+            $asesoria = BrAsesoria::find($id_asesoria);
+            if(!$asesoria){
+                $this -> respuesta_hijo = 'consulta_asesoria_sin_datos';
+                $this -> construir_respuesta = [];
+                return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 404);
+            }
+
+            // Validar todos los datos necesarios
+            $validatedData = $request->validate([
+                // Datos del paciente (opcionales para actualización)
+                'paciente.primer_ap'              => 'sometimes|string',
+                'paciente.segundo_ap'             => 'nullable|string',
+                'paciente.nombres'                => 'sometimes|string',
+                'paciente.fecha_nacimiento'       => 'nullable|date',
+                'paciente.edad'                   => 'nullable|integer',
+                'paciente.genero'                 => 'nullable|string',
+                'paciente.ct_edo_civil'           => 'nullable|integer',
+                'paciente.ct_gdo_estudios'        => 'nullable|integer',
+                'paciente.tp_id_oficial'          => 'nullable|integer',
+                'paciente.id_oficial'             => 'nullable|string',
+                'paciente.ct_ent_nac'             => 'nullable|integer',
+                'paciente.curp'                   => 'nullable|string',
+                'paciente.calle'                  => 'nullable|string',
+                'paciente.num_ext'                => 'nullable|string',
+                'paciente.num_int'                => 'nullable|string',
+                'paciente.entre_calle'            => 'nullable|string',
+                'paciente.y_calle'                => 'nullable|string',
+                'paciente.otra_referencia'        => 'nullable|string',
+                'paciente.colonia'                => 'nullable|string',
+                'paciente.ct_municipio'           => 'nullable|integer',
+                'paciente.municipio'              => 'nullable|string',
+                'paciente.ct_localidad'           => 'nullable',
+                'paciente.localidad'              => 'nullable|string',
+                'paciente.ct_entidad_federativa'  => 'nullable|integer',
+                'paciente.entidad_federativa'     => 'nullable|string',
+                'paciente.codigo_postal_id'       => 'nullable|integer|exists:br_cat_codigos_postales,ct_cp',
+                'paciente.codigo_postal'          => 'nullable|string',
+                'paciente.telefono'               => 'nullable|string',
+                'paciente.celular'                => 'nullable|string',
+                'paciente.email'                  => 'nullable|string|email',
+                'paciente.ct_nacionalidad'        => 'nullable|integer',
+
+                // Datos de la asesoría (opcionales para actualización)
+                'asesoria.asesor_atendio_id'         => 'sometimes|exists:br_directorio,id',
+                'asesoria.estado_asesoria'           => 'sometimes|in:ABIERTA,CERRADA,CANALIZADA',
+                'asesoria.tipo_asesoria_canaliza_id' => 'nullable|exists:br_cat_tipo_asesorias,id',
+                'asesoria.fecha_asesoria'            => 'nullable|date',
+
+                // Datos de preguntas y respuestas (opcionales)
+                'respuestas'                      => 'nullable|array',
+                'respuestas.*.id'                 => 'nullable|exists:br_asesorias_preguntas_respuestas,id',
+                'respuestas.*.pregunta_id'        => 'required|exists:br_cat_preguntas,id',
+                'respuestas.*.opcion_id'          => 'nullable|exists:br_cat_opciones,id',
+                'respuestas.*.valor_contexto'     => 'nullable|string',
+            ]);
+
+            // Validación adicional: si estado es CANALIZADA, tipo_asesoria_canaliza_id es obligatorio
+            if (isset($validatedData['asesoria']['estado_asesoria']) && 
+                $validatedData['asesoria']['estado_asesoria'] === 'CANALIZADA' && 
+                empty($validatedData['asesoria']['tipo_asesoria_canaliza_id'])) {
+                $this -> respuesta_hijo = 'validacion_asesoria_fail';
+                $this -> construir_respuesta = ['error' => 'El campo tipo_asesoria_canaliza_id es obligatorio cuando el estado es CANALIZADA.'];
+                return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 422);
+            }
+
+            // Iniciar transacción para garantizar atomicidad
+            DB::beginTransaction();
+
+            try {
+                // PASO 1: Actualizar datos del paciente (si se enviaron)
+                if (isset($validatedData['paciente']) && !empty($validatedData['paciente'])) {
+                    $paciente = BrPaciente::find($asesoria->paciente_id);
+                    if ($paciente) {
+                        $paciente->update($validatedData['paciente']);
+                        Log::info('Paciente actualizado con ID: ' . $paciente->id);
+                    }
+                }
+
+                // PASO 2: Actualizar datos de la asesoría (si se enviaron)
+                if (isset($validatedData['asesoria']) && !empty($validatedData['asesoria'])) {
+                    $asesoria->update($validatedData['asesoria']);
+                    Log::info('Asesoría actualizada con ID: ' . $asesoria->id);
+                }
+
+                // PASO 3: Actualizar preguntas y respuestas (si se enviaron)
+                if (isset($validatedData['respuestas']) && !empty($validatedData['respuestas'])) {
+                    foreach ($validatedData['respuestas'] as $respuesta) {
+                        if (isset($respuesta['id']) && $respuesta['id']) {
+                            // Actualizar respuesta existente
+                            $preguntaRespuesta = BrAsesoriasPreguntasRespuestas::find($respuesta['id']);
+                            if ($preguntaRespuesta) {
+                                $preguntaRespuesta->update([
+                                    'pregunta_id'    => $respuesta['pregunta_id'],
+                                    'opcion_id'      => $respuesta['opcion_id'] ?? null,
+                                    'valor_contexto' => $respuesta['valor_contexto'] ?? null,
+                                ]);
+                            }
+                        } else {
+                            // Crear nueva respuesta
+                            BrAsesoriasPreguntasRespuestas::create([
+                                'asesoria_id'    => $asesoria->id,
+                                'pregunta_id'    => $respuesta['pregunta_id'],
+                                'opcion_id'      => $respuesta['opcion_id'] ?? null,
+                                'valor_contexto' => $respuesta['valor_contexto'] ?? null,
+                            ]);
+                        }
+                    }
+
+                    Log::info('Preguntas y respuestas actualizadas: ' . count($validatedData['respuestas']) . ' registros');
+                }
+
+                // Commit de la transacción
+                DB::commit();
+
+                $this -> respuesta_hijo = 'actualizacion_asesoria_completa_success';
+                $this -> construir_respuesta = [
+                    'asesoria' => $asesoria->fresh(),
+                    'mensaje' => 'Asesoría actualizada exitosamente'
+                ];
+
+                return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 200);
+
+            } catch (\Throwable $th) {
+                // Rollback automático en caso de error
+                DB::rollBack();
+                
+                Log::error('Error en transacción de actualización de asesoría completa: ' . $th->getMessage() . ' | Trace: ' . $th->getTraceAsString());
+                
+                $this -> respuesta_hijo = 'actualizacion_asesoria_completa_fail';
+                $this -> construir_respuesta = ['error' => 'Error en la transacción: ' . $th->getMessage()];
+                return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 500);
+            }
+
+        }catch(\Illuminate\Validation\ValidationException $e){
+            $this -> respuesta_hijo = 'validacion_asesoria_fail';
+            $this -> construir_respuesta = ['errors' => $e->errors()];
+            Log::error('Error de validación al actualizar asesoría completa: ' . json_encode($e->errors()) . ' | Request: ' . json_encode($request->all()));
+            return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 422);
+        }catch(\Exception $e){
+            Log::error('Error al actualizar asesoría completa: ' . $e->getMessage() . ' | Request: ' . json_encode($request->all()));
+            $this -> respuesta_hijo = 'actualizacion_asesoria_completa_fail';
             $this -> construir_respuesta = ['error' => $e -> getMessage()];
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 500);
         }
