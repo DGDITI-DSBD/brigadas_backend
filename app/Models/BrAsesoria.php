@@ -78,7 +78,7 @@ class BrAsesoria extends Model
         }
         return $query;
     }
-    public function scopeSearchByEspecialisacion($query, $especializacion_id)
+    public function scopeSearchByEspecializacion($query, $especializacion_id)
     {
         if($especializacion_id) {
             return $query->whereHas('directorio', function ($q) use ($especializacion_id) {

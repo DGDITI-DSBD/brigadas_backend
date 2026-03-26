@@ -34,6 +34,7 @@ class asesoriaController extends Controller
          try{
 
              $_type_user = $this->Auth->user()->tipo_usuario;
+            
              $this -> respuesta_padre = 'asesorias';
              //$_type_user = 'ADMINISTRADOR';
              
@@ -44,11 +45,12 @@ class asesoriaController extends Controller
 
                 
                 $deepQuery = $asesorias->searchByParamsPacientes($paramsSearch ?? [])
-                                       ->searchByProfesionista($request->get('directorio_id' ) ?? null);
+                                       ->searchByProfesionista($request->get('directorio_id' ) ?? null) // Filtrar directorios asociados a cada profesión.
+                                       ->searchByEspecializacion($request->get('especializacion_id' ) ?? 1 );
                             
             } else {
 
-                $deepUser = $_type_user->directorio->id;
+                $deepUser = $this->Auth->user()->directorio->id;
                 //$deepUser = 3;
 
                 $deepQuery = $asesorias->searchByParamsPacientes($paramsSearch ?? [])
