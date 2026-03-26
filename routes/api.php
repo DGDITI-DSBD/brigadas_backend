@@ -76,17 +76,23 @@ Route::prefix('v1')->group(function () {
         Route::get('/parentesco'            , [catalogosController::class, 'getParentesco']);
         Route::get('/documentos-oficiales'  , [catalogosController::class, 'getDocumentosOficiales']);
 
+
+        Route::get('/directorio-especialistas', [catalogosController::class, 'getDirectorioEspecialistas']);
+        Route::get('/catalogos-generales', [catalogosController::class, 'get_catalogos_generales']);
     });
     
     //Route::post('/preguntas_opciones', [catalogosController::class, 'getCuestionarioAsesoria']);
+    Route::get('/asesorias-beneficiarias', [asesoriaController::class, 'asesoria_beneficiaria']);
     Route::group(['middleware' => 'auth:api', 'prefix' => 'asesorias'], function () {
         // Listar beneficiarias con asesorías según usuario logueado
         Route::get('/beneficiarias', [asesoriaController::class, 'beneficiaria_asesoria']);
+        Route::get('/relacion-beneficiarias', [asesoriaController::class, 'asesoria_beneficiaria']);
         
         // CRUD de Asesorías
         Route::post('/', [asesoriaController::class, 'create_asesoria']);
         Route::post('/crear-completa', [asesoriaController::class, 'crear_asesoria_completa']); // Endpoint transaccional
         Route::put('/{id}', [asesoriaController::class, 'update_asesoria']);
+        Route::put('/{id}/actualizar-completa', [asesoriaController::class, 'actualizar_asesoria_completa']); // Actualizar asesoría completa
         Route::get('/beneficiaria/{id}', [asesoriaController::class, 'get_asesorias']);
         
         // Preguntas y Respuestas
@@ -98,6 +104,11 @@ Route::prefix('v1')->group(function () {
         // Acciones específicas
         Route::put('/{id}/canalizar', [asesoriaController::class, 'canalizar_asesoria']);
         Route::put('/{id}/estado', [asesoriaController::class, 'estado_update_asesoria']);
+    });
+
+    // CRUD de Pacientes/Beneficiarias
+    Route::group(['middleware' => 'auth:api', 'prefix' => 'pacientes'], function () {
+        Route::put('/{id}', [asesoriaController::class, 'update_paciente']); // Actualizar datos del paciente
     });
 
 });

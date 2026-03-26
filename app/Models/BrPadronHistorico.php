@@ -45,6 +45,18 @@ class BrPadronHistorico extends Model
         //'grupo_vulnerable'
     ];
 
+    public function scopeSearching($query, $search)
+    {
+        if($search) {
+        return $query->where('folio_relacionado', 'like', '%'.$search.'%')
+            ->orWhere('curp', 'like', '%'.$search.'%')
+            ->orWhereRaw("CONCAT(primer_ap, ' ', segundo_ap, ' ', nombres) LIKE ?", ["%$search%"])
+            ->orWhere('primer_ap', 'like', '%'.$search.'%')
+            ->orWhere('segundo_ap', 'like', '%'.$search.'%')
+            ->orWhere('nombres', 'like', '%'.$search.'%');
+        }
+        return $query;
+    }
     public function scopeFolioRelacionado($query, $folio_relacionado)
     {
         if($folio_relacionado) {
@@ -63,9 +75,7 @@ class BrPadronHistorico extends Model
     {
         if($nombre_completo) {
                    
-            return $query->whereRaw("CONCAT(primer_ap, ' ', segundo_ap, ' ', nombres) LIKE ?", ["%$nombre_completo%"])
-                    ->orWhereRaw("CONCAT(primer_ap, ' ', nombres) LIKE ?", ["%$nombre_completo%"])
-                ->orWhereRaw("CONCAT(segundo_ap, ' ', nombres) LIKE ?", ["%$nombre_completo%"])
+            return $query->orWhereRaw("CONCAT(primer_ap, ' ', segundo_ap, ' ', nombres) LIKE ?", ["%$nombre_completo%"])
                 ->orWhere('primer_ap', 'like', '%'.$nombre_completo.'%')
                 ->orWhere('segundo_ap', 'like', '%'.$nombre_completo.'%')
                 ->orWhere('nombres', 'like', '%'.$nombre_completo.'%');

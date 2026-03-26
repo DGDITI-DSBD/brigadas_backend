@@ -24,6 +24,11 @@ class BrAsesoria extends Model
         'fecha_asesoria' => 'date:Y-m-d',
     ];
 
+    public $timestamps = true;
+    public $incrementing = true;
+
+
+
     public function directorio()
     {
         return $this->belongsTo(BrDirectorio::class, 'asesor_atendio_id');
@@ -39,20 +44,25 @@ class BrAsesoria extends Model
         return $this->belongsTo(BrCatTipoAsesoria::class, 'tipo_asesoria_canaliza_id');
     }
 
-    public function scope_searchByParamsPacientes($query, $params)
+    public function preguntasRespuestas()
+    {
+        return $this->hasMany(BrAsesoriasPreguntasRespuestas::class, 'asesoria_id');
+    }
+
+    public function scopeSearchByParamsPacientes($query, $params)
     {
         if (isset($params['nombre_completo']) && !empty($params['nombre_completo'])) {
             $query->whereHas('paciente', function ($q) use ($params) {
                 $q->whereRaw("CONCAT(primer_ap, ' ', segundo_ap, ' ', nombres) LIKE ?", ['%' . $params['nombre_completo'] . '%']);
             });
         }
-        if (!is_null($params['folio_relacionado']) && !empty($params['folio_relacionado'])) {
+        if (isset($params['folio_relacionado']) && !empty($params['folio_relacionado'])) {
             $query->whereHas('paciente', function ($q) use ($params) {
                 $q->orWhere('folio_relacionado', 'LIKE', '%' . $params['folio_relacionado'] . '%');
             });
         }
 
-        if (!is_null($params['curp']) && !empty($params['curp'])) {
+        if (isset($params['curp']) && !empty($params['curp'])) {
             $query->whereHas('paciente', function ($q) use ($params) {
                 $q->orWhere('curp', 'LIKE', '%' . $params['curp'] . '%');
             });
@@ -61,14 +71,21 @@ class BrAsesoria extends Model
         return $query;
     }
     // Scope para administradores y coordinadores
-    public function scope_searchByProfesionista($query, $directorio_id)
+    public function scopeSearchByProfesionista($query, $directorio_id)
     {
-        return $query->where('asesor_atendio_id', $directorio_id);
+        if($directorio_id) {
+            return $query->where('asesor_atendio_id', $directorio_id);
+        }
+        return $query;
     }
-    public function scope_searchByEspecialisacion($query, $especializacion_id)
+    public function scopeSearchByEspecializacion($query, $especializacion_id)
     {
-        return $query->whereHas('directorio', function ($q) use ($especializacion_id) {
+        if($especializacion_id) {
+            return $query->whereHas('directorio', function ($q) use ($especializacion_id) {
             $q->where('tipo_asesoria', $especializacion_id);
         });
+        }
+        return $query;
+        
     }
 }
