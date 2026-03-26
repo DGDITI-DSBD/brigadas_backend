@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\accesoController;
 use App\Http\Controllers\authController;
+use App\Http\Controllers\PacientesController;
 use App\Http\Controllers\ReporteAvanzadoController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
@@ -50,12 +51,31 @@ Route::prefix('v1')->group(function () {
         Route::put('update-usuarios/{id}', [accesoController::class, 'UpdateUsuario']);
         Route::delete('delete-usuarios/{id}', [accesoController::class, 'DeleteUsuario']);
 
+
+        Route::get('directorio-beneficiarias'   , [PacientesController::class, 'getDirectorioBeneficiarias']);
+        Route::post('store-beneficiarias'       , [PacientesController::class, 'storeDirectorioBeneficiarias']);
+        Route::get('beneficiaria/{id}',         [PacientesController::class, 'getDirectorioBeneficiariasById']);
+        Route::put('update-beneficiaria/{id}'   , [PacientesController::class, 'updateDirectorioBeneficiarias']);
+        Route::delete('delete-beneficiaria/{id}'   , [PacientesController::class, 'deleteDirectorioBeneficiarias']);
+
+
     });
 
     Route::group(['middleware' => 'auth:api', 'prefix' => 'catalogos'], function () {
         Route::post('/preguntas_opciones', [catalogosController::class, 'getCuestionarioAsesoria']);
         Route::get('/beneficiarias-historico', [asesoriaController::class, 'get_beneficiarias_historico']);
         Route::post('/importar-paciente', [asesoriaController::class, 'import_padron_historico']);
+
+        Route::get('/entidades-federativas' , [catalogosController::class, 'getEntidadesFederativas']);
+        Route::get('/municipios/{entidad}'            , [catalogosController::class, 'getMunicipios']);
+        Route::get('/localidades/{municipio}'           , [catalogosController::class, 'getLocalidades']);
+        Route::get('/codigos-postales/{municipio}'      , [catalogosController::class, 'getCodigosPostales']);
+        Route::get('/nacionalidades'        , [catalogosController::class, 'getNacionalidades']);
+        Route::get('/estado-civil'          , [catalogosController::class, 'getEstadoCivil']);
+        Route::get('/grado-estudios'        , [catalogosController::class, 'getGradoDeEstudios']);
+        Route::get('/parentesco'            , [catalogosController::class, 'getParentesco']);
+        Route::get('/documentos-oficiales'  , [catalogosController::class, 'getDocumentosOficiales']);
+
 
         Route::get('/directorio-especialistas', [catalogosController::class, 'getDirectorioEspecialistas']);
         Route::get('/catalogos-generales', [catalogosController::class, 'get_catalogos_generales']);
