@@ -322,6 +322,7 @@ class catalogosController extends Controller
     try{
         $this->tipo_respuesta_padre = 'directorios';
         $id = $request->especialidad_id;
+        Log::info("ID de especialidad recibido: " . $id);
 
         $getDirectorios = BrDirectorio::select('id', 'primer_ap_dir', 'segundo_ap_dir', 'nombres')
         ->where('tipo_asesoria', $id)

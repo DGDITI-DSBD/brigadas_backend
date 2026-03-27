@@ -76,7 +76,7 @@ class authController extends Controller
             $assignmentUser = JWTAuth::toUser($token);
             Log::info("directorio", [$assignmentUser ? $assignmentUser->directorio : null]);
             $this -> construirINF = ['token'        => (string)$token,
-                                     'member_check' => $assignmentUser ? JWTAuth::user() : null,
+                                     'member_auth' => $assignmentUser ? JWTAuth::user() : null,
                                      'directorios' => $assignmentUser ? JWTAuth::user()->directorio : null,
                                      'permissions' => $assignmentUser ? JWTAuth::user()->usuarioPrivilegios()->get() : null,
                                      'status'       => $assignmentUser && JWTAuth::user() -> estado === 1 ? 'Authorization' : 'Not-Authorization'];

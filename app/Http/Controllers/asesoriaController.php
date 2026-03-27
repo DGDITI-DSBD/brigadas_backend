@@ -68,7 +68,7 @@ class asesoriaController extends Controller
                 
                 $deepQuery = $asesorias->searchByParamsPacientes($paramsSearch ?? [])
                                        ->searchByProfesionista($request->get('directorio_id' ) ?? null) // Filtrar directorios asociados a cada profesión.
-                                       ->searchByEspecializacion($request->get('especializacion_id' ) ?? 1 );
+                                       ->searchByEspecializacion($request->get('especialidad_id' ) ?? 1 );
                             
             } else {
 
@@ -271,7 +271,7 @@ class asesoriaController extends Controller
                 'asesor_atendio_id'         => 'required|exists:br_directorio,id',
                 'paciente_id'               => 'required|exists:br_pacientes,id',
                 'estado_asesoria'           => 'required|in:ABIERTA,CERRADA,CANALIZADA',
-                'tipo_asesoria_canaliza_id' => 'nullable|exists:br_cat_tipo_asesorias,id',
+                'tipo_asesoria_canaliza_id' => 'nullable|exists:br_cat_tipo_asesoria,id',
             ]);
 
             // Si el estado es CANALIZADA, tipo_asesoria_canaliza_id es obligatorio
@@ -812,7 +812,7 @@ class asesoriaController extends Controller
                 // Datos de la asesoría
                 'asesoria.asesor_atendio_id'         => 'required|exists:br_directorio,id',
                 'asesoria.estado_asesoria'           => 'required|in:ABIERTA,CERRADA,CANALIZADA',
-                'asesoria.tipo_asesoria_canaliza_id' => 'nullable|exists:br_cat_tipo_asesorias,id',
+                'asesoria.tipo_asesoria_canaliza_id' => 'nullable|exists:br_cat_tipo_asesoria,id',
                 'asesoria.fecha_asesoria'            => 'nullable|date',
 
                 // Datos de preguntas y respuestas (formato array de objetos)
@@ -1095,7 +1095,7 @@ class asesoriaController extends Controller
                 // Datos de la asesoría (opcionales para actualización)
                 'asesoria.asesor_atendio_id'         => 'sometimes|exists:br_directorio,id',
                 'asesoria.estado_asesoria'           => 'sometimes|in:ABIERTA,CERRADA,CANALIZADA',
-                'asesoria.tipo_asesoria_canaliza_id' => 'nullable|exists:br_cat_tipo_asesorias,id',
+                'asesoria.tipo_asesoria_canaliza_id' => 'nullable|exists:br_cat_tipo_asesoria,id',
                 'asesoria.fecha_asesoria'            => 'nullable|date',
 
                 // Datos de preguntas y respuestas (opcionales)
