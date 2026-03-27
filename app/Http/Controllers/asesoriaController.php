@@ -30,6 +30,28 @@ class asesoriaController extends Controller
         $this->construir_respuesta = [];
     }
 
+    /**
+     * Calcular edad a partir de fecha de nacimiento
+     * @param string|null $fecha_nacimiento
+     * @return int|null
+     */
+    private function calcularEdad($fecha_nacimiento)
+    {
+        if (empty($fecha_nacimiento)) {
+            return null;
+        }
+
+        try {
+            $fechaNac = new \DateTime($fecha_nacimiento);
+            $hoy = new \DateTime();
+            $edad = $hoy->diff($fechaNac)->y;
+            return $edad;
+        } catch (\Exception $e) {
+            Log::warning('Error al calcular edad desde fecha de nacimiento: ' . $e->getMessage());
+            return null;
+        }
+    }
+
     public function asesoria_beneficiaria(Request $request){
          try{
 
@@ -793,13 +815,11 @@ class asesoriaController extends Controller
                 'asesoria.tipo_asesoria_canaliza_id' => 'nullable|exists:br_cat_tipo_asesorias,id',
                 'asesoria.fecha_asesoria'            => 'nullable|date',
 
-                // Datos de preguntas y respuestas
-                'respuestas.pregunta_id'       => 'required|array',
-                'respuestas.pregunta_id.*'     => 'required|exists:br_cat_preguntas,id',
-                'respuestas.opcion_id'         => 'required|array',
-                'respuestas.opcion_id.*'       => 'nullable|exists:br_cat_opciones,id',
-                'respuestas.valor_contexto'    => 'nullable|array',
-                'respuestas.valor_contexto.*'  => 'nullable|string',
+                // Datos de preguntas y respuestas (formato array de objetos)
+                'respuestas'                      => 'required|array',
+                'respuestas.*.pregunta_id'        => 'required|exists:br_cat_preguntas,id',
+                'respuestas.*.opcion_id'          => 'nullable|exists:br_cat_opciones,id',
+                'respuestas.*.valor_contexto'     => 'nullable|string',
             ]);
 
             // Validación adicional: si estado es CANALIZADA, tipo_asesoria_canaliza_id es obligatorio
@@ -809,10 +829,10 @@ class asesoriaController extends Controller
                 return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 422);
             }
 
-            // Validación: arrays de respuestas deben tener el mismo tamaño
-            if(!is_array($validatedData['respuestas']['pregunta_id']) || empty($validatedData['respuestas']['pregunta_id'])){
+            // Validación: debe haber al menos una respuesta
+            if(!is_array($validatedData['respuestas']) || empty($validatedData['respuestas'])){
                 $this -> respuesta_hijo = 'excepcion_validar_preguntas_respuestas';
-                $this -> construir_respuesta = ['error' => 'La pregunta_id debe ser un array no vacío.'];
+                $this -> construir_respuesta = ['error' => 'Debe enviar al menos una respuesta.'];
                 return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 422);
             }
 
@@ -822,6 +842,12 @@ class asesoriaController extends Controller
             try {
                 // PASO 1: Crear o buscar paciente
                 $pacienteData = $validatedData['paciente'];
+                
+                // Calcular edad automáticamente desde fecha de nacimiento
+                if (isset($pacienteData['fecha_nacimiento'])) {
+                    $pacienteData['edad'] = $this->calcularEdad($pacienteData['fecha_nacimiento']);
+                    Log::info('Edad calculada: ' . $pacienteData['edad'] . ' años desde fecha: ' . $pacienteData['fecha_nacimiento']);
+                }
                 
                 $paciente = BrPaciente::where('folio_relacionado', $pacienteData['folio_relacionado'])
                     ->orWhere(function($query) use ($pacienteData) {
@@ -893,12 +919,12 @@ class asesoriaController extends Controller
                 $respuestasData = $validatedData['respuestas'];
                 $preguntas_respuestas_data = [];
 
-                foreach ($respuestasData['pregunta_id'] as $index => $pregunta_id) {
+                foreach ($respuestasData as $respuesta) {
                     $preguntas_respuestas_data[] = [
                         'asesoria_id'    => $asesoria->id,
-                        'pregunta_id'    => $pregunta_id,
-                        'opcion_id'      => $respuestasData['opcion_id'][$index] ?? null,
-                        'valor_contexto' => $respuestasData['valor_contexto'][$index] ?? null,
+                        'pregunta_id'    => $respuesta['pregunta_id'],
+                        'opcion_id'      => $respuesta['opcion_id'] ?? null,
+                        'valor_contexto' => $respuesta['valor_contexto'] ?? null,
                         'created_at'     => now(),
                         'updated_at'     => now(),
                     ];
@@ -1097,6 +1123,12 @@ class asesoriaController extends Controller
                 if (isset($validatedData['paciente']) && !empty($validatedData['paciente'])) {
                     $paciente = BrPaciente::find($asesoria->paciente_id);
                     if ($paciente) {
+                        // Calcular edad automáticamente desde fecha de nacimiento si fue enviada
+                        if (isset($validatedData['paciente']['fecha_nacimiento'])) {
+                            $validatedData['paciente']['edad'] = $this->calcularEdad($validatedData['paciente']['fecha_nacimiento']);
+                            Log::info('Edad calculada en actualización: ' . $validatedData['paciente']['edad'] . ' años desde fecha: ' . $validatedData['paciente']['fecha_nacimiento']);
+                        }
+                        
                         $paciente->update($validatedData['paciente']);
                         Log::info('Paciente actualizado con ID: ' . $paciente->id);
                     }
@@ -1110,29 +1142,29 @@ class asesoriaController extends Controller
 
                 // PASO 3: Actualizar preguntas y respuestas (si se enviaron)
                 if (isset($validatedData['respuestas']) && !empty($validatedData['respuestas'])) {
+                    // Eliminar todas las respuestas existentes de la asesoría
+                    // Esto garantiza que las opciones múltiples se actualicen correctamente
+                    $respuestasEliminadas = BrAsesoriasPreguntasRespuestas::where('asesoria_id', $asesoria->id)->delete();
+                    Log::info('Respuestas eliminadas antes de actualizar: ' . $respuestasEliminadas);
+
+                    // Preparar datos para inserción masiva
+                    $nuevasRespuestas = [];
                     foreach ($validatedData['respuestas'] as $respuesta) {
-                        if (isset($respuesta['id']) && $respuesta['id']) {
-                            // Actualizar respuesta existente
-                            $preguntaRespuesta = BrAsesoriasPreguntasRespuestas::find($respuesta['id']);
-                            if ($preguntaRespuesta) {
-                                $preguntaRespuesta->update([
-                                    'pregunta_id'    => $respuesta['pregunta_id'],
-                                    'opcion_id'      => $respuesta['opcion_id'] ?? null,
-                                    'valor_contexto' => $respuesta['valor_contexto'] ?? null,
-                                ]);
-                            }
-                        } else {
-                            // Crear nueva respuesta
-                            BrAsesoriasPreguntasRespuestas::create([
-                                'asesoria_id'    => $asesoria->id,
-                                'pregunta_id'    => $respuesta['pregunta_id'],
-                                'opcion_id'      => $respuesta['opcion_id'] ?? null,
-                                'valor_contexto' => $respuesta['valor_contexto'] ?? null,
-                            ]);
-                        }
+                        $nuevasRespuestas[] = [
+                            'asesoria_id'    => $asesoria->id,
+                            'pregunta_id'    => $respuesta['pregunta_id'],
+                            'opcion_id'      => $respuesta['opcion_id'] ?? null,
+                            'valor_contexto' => $respuesta['valor_contexto'] ?? null,
+                            'created_at'     => now(),
+                            'updated_at'     => now(),
+                        ];
                     }
 
-                    Log::info('Preguntas y respuestas actualizadas: ' . count($validatedData['respuestas']) . ' registros');
+                    // Insertar todas las nuevas respuestas
+                    if (!empty($nuevasRespuestas)) {
+                        BrAsesoriasPreguntasRespuestas::insert($nuevasRespuestas);
+                        Log::info('Preguntas y respuestas insertadas en actualización: ' . count($nuevasRespuestas) . ' registros');
+                    }
                 }
 
                 // Commit de la transacción

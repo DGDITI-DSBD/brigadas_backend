@@ -77,6 +77,8 @@ trait carpeta_respuestas_t
                     'actualizacion_estado_asesoria_fail'                => ['ok' => false, 'backlog' => 1, 'backdata' => $data, 'message_description' => 'Falló en la actualización del estado de asesoría'],
                     'creacion_asesoria_completa_success'                => ['ok' => true,  'backlog' => 0, 'backdata' => $data, 'message_description' => 'Asesoría completa creada con éxito (paciente, asesoría y respuestas)'],
                     'creacion_asesoria_completa_fail'                   => ['ok' => false, 'backlog' => 1, 'backdata' => $data, 'message_description' => 'Falló en la creación de la asesoría completa'],
+                    'actualizacion_asesoria_completa_success'           => ['ok' => true,  'backlog' => 0, 'backdata' => $data, 'message_description' => 'Asesoría completa actualizada con éxito (paciente, asesoría y respuestas)'],
+                    'actualizacion_asesoria_completa_fail'              => ['ok' => false, 'backlog' => 1, 'backdata' => $data, 'message_description' => 'Falló en la actualización de la asesoría completa'],
             ],
             'pacientes' => [
                     'consulta_success'                                  => ['ok' => true,  'backlog' => 0, 'backdata' => $data, 'message_description' => 'Consulta realizada con éxito'], 
