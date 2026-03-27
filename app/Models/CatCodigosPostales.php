@@ -11,7 +11,10 @@ class CatCodigosPostales extends Model
     protected $table = 'br_cat_codigos_postales';
 
     public $timestamps = false;
+
+    protected $primaryKey = 'cp_id';
     protected $fillable = [
+        'cp_id',
         'codigo_postal',
         'colonia',
         'ct_cp',

@@ -156,7 +156,7 @@ class catalogosController extends Controller
         try{
 
             $codigos_postales = CatCodigosPostales::query()
-            ->select('codigo_postal', 'colonia')
+            ->select('cp_id', 'codigo_postal', 'colonia')
             ->where('ct_municipio', $municipio)
             ->get();
 

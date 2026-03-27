@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\BrPaciente;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
 
 class PacientesController extends Controller
 {
@@ -107,19 +108,113 @@ class PacientesController extends Controller
     public function updateDirectorioBeneficiarias(Request $request, $id)
     {
         try {
+            Log::info("Actualizando beneficiaria ID: $id", ['request_data' => $request->all()]);
+
+            $UpData = $request->only([
+                'ct_edo_civil',
+                'tp_id_oficial',
+                'id_oficial',
+                'ct_ent_nac',
+                'calle',
+                'num_ext',
+                'num_int',
+                'entre_calle',
+                'y_calle',
+                'otra_referencia',
+                'colonia',
+                'ct_localidad',
+                'localidad',
+                'ct_municipio',
+                'municipio',
+                'ct_entidad_federativa',
+                'entidad_federativa',
+                'codigo_postal_id',
+                'codigo_postal',
+                'telefono',
+                'celular',
+                'email',
+                'ct_gdo_estudios',
+                'ct_nacionalidad',
+            ]);
+            $tipoUsuario = strtoupper((string) $request->input('tipo_usuario', ''));
+            $actualizar = 0;
+
             $paciente = BrPaciente::findOrFail($id);
 
-            $data = $request->only($paciente->getFillable());
+            Log::info("Beneficiaria encontrada", ['beneficiaria' => $paciente->toArray()]);
 
-            $paciente->fill($data);
-            $paciente->save();
+            switch ($tipoUsuario) {
+                case 'ADMINISTRADOR':
+                        $actualizar = BrPaciente::where('id', $id)->update([
+                            'ct_edo_civil'          => $UpData ['ct_edo_civil'],
+                            'tp_id_oficial'         => $UpData ['tp_id_oficial'],
+                            'id_oficial'            => $UpData ['id_oficial'],
+                            'ct_ent_nac'            => $UpData ['ct_ent_nac'],
+                            'calle'                 => $UpData ['calle'],
+                            'num_ext'               => $UpData ['num_ext'],
+                            'num_int'               => $UpData ['num_int'],
+                            'entre_calle'           => $UpData ['entre_calle'],
+                            'y_calle'               => $UpData ['y_calle'],
+                            'otra_referencia'       => $UpData ['otra_referencia'],
+                            'ct_entidad_federativa' => $UpData ['ct_entidad_federativa'],
+                            'entidad_federativa'    => $UpData ['entidad_federativa'],
+                            'ct_municipio'          => $UpData ['ct_municipio'],
+                            'municipio'             => $UpData ['municipio'],
+                            'ct_localidad'          => $UpData ['ct_localidad'],
+                            'localidad'             => $UpData ['localidad'],
+                            'codigo_postal_id'      => $UpData ['codigo_postal_id'],
+                            'codigo_postal'         => $UpData ['codigo_postal'],
+                            'colonia'               => $UpData ['colonia'],
+                            'telefono'              => $UpData ['telefono'],
+                            'celular'               => $UpData ['celular'],
+                            'email'                 => $UpData ['email'],
+                            'ct_gdo_estudios'       => $UpData ['ct_gdo_estudios'],
+                            'ct_nacionalidad'       => $UpData ['ct_nacionalidad']
+                        ]);
+                    break;
+
+                case 'COORDINADOR':
+                    $actualizar = BrPaciente::where('id', $id)->update([
+                            'ct_edo_civil'          => $UpData ['ct_edo_civil'],
+                            'telefono'              => $UpData ['telefono'],
+                            'celular'               => $UpData ['celular'],
+                            'email'                 => $UpData ['email'],
+                            'ct_gdo_estudios'       => $UpData ['ct_gdo_estudios'],
+                        ]);
+                    break;
+                
+                case 'ESPECIALISTA':
+                    $actualizar = BrPaciente::where('id', $id)->update([
+                            'ct_edo_civil'          => $UpData ['ct_edo_civil'],
+                            'telefono'              => $UpData ['telefono'],
+                            'celular'               => $UpData ['celular'],
+                            'email'                 => $UpData ['email'],
+                            'ct_gdo_estudios'       => $UpData ['ct_gdo_estudios'],
+                        ]);
+                    break;
+                
+                default:
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Tipo de usuario no válido para actualizar la beneficiaria',
+                        'data' => null
+                    ], 400);
+            }
+
+            $paciente->refresh();
+
+            Log::info("Beneficiaria ID: $id actualizada exitosamente", ['updated_data' => $paciente->toArray()]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Beneficiaria actualizada exitosamente',
-                'data' => $paciente->fresh(),
+                'data' => [
+                    'updated_rows' => $actualizar,
+                    'beneficiaria' => $paciente,
+                ],
             ]);
         } catch (\Exception $e) {
+            Log::error("Error al actualizar la beneficiaria ID: $id", ['error' => $e->getMessage()]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar la beneficiaria: ' . $e->getMessage(),
@@ -127,5 +222,5 @@ class PacientesController extends Controller
             ], 500);
         }
     }
-    
+
 }
