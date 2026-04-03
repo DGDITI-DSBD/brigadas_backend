@@ -45,6 +45,11 @@ trait carpeta_respuestas_t
                 'asesorias_success' => ['ok' => true, 'backlog' => 0, 'backdata' => $data, 'message_description' => 'Asesorías obtenidas con éxito'],
                 'asesorias_sin_datos' => ['ok' => true, 'backlog' => 2, 'backdata' => $data, 'message_description' => 'No hay asesorías para el período'],
             ],
+            'historial' => [
+                'historial_success' => ['ok' => true, 'backlog' => 0, 'backdata' => $data, 'message_description' => 'Historial obtenido con éxito'],
+                'historial_sin_datos' => ['ok' => true, 'backlog' => 2, 'backdata' => $data, 'message_description' => 'No hay datos de historial para el período'],
+                'historial_fail' => ['ok' => false, 'backlog' => 1, 'backdata' => $data, 'message_description' => 'Error al obtener el historial'],
+            ],
            'asesorias' => [
                     'consulta_success'                                  => ['ok' => true,  'backlog' => 0, 'backdata' => $data, 'message_description' => 'Consulta realizada con éxito'], 
                     'consulta_exitosa'                                  => ['ok' => true,  'backlog' => 0, 'backdata' => $data, 'message_description' => 'Consulta exitosa'], 

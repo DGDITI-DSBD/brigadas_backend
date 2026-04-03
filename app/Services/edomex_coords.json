@@ -1,0 +1,486 @@
+{
+  "Acambay": [
+    32.15,
+    17.25
+  ],
+  "Acolman": [
+    78.25,
+    36.67
+  ],
+  "Aculco": [
+    34.59,
+    9.67
+  ],
+  "Almoloya de Alquisiras": [
+    32.92,
+    78.35
+  ],
+  "Almoloya de Juárez": [
+    36.98,
+    48.45
+  ],
+  "Almoloya del Río": [
+    50.37,
+    63.5
+  ],
+  "Amanalco": [
+    28.93,
+    57.3
+  ],
+  "Amatepec": [
+    13.6,
+    83.79
+  ],
+  "Amecameca": [
+    92.11,
+    60.37
+  ],
+  "Apaxco": [
+    69.34,
+    17.79
+  ],
+  "Atenco": [
+    78.13,
+    43.58
+  ],
+  "Atizapán": [
+    51.1,
+    62.14
+  ],
+  "Atizapán de Zaragoza": [
+    62.5,
+    41.42
+  ],
+  "Atlacomulco": [
+    34.54,
+    25.17
+  ],
+  "Atlautla": [
+    91.55,
+    64.16
+  ],
+  "Axapusco": [
+    88.81,
+    28.64
+  ],
+  "Ayapango": [
+    87.22,
+    59.98
+  ],
+  "Calimaya": [
+    43.54,
+    63.11
+  ],
+  "Capulhuac": [
+    53.89,
+    59.01
+  ],
+  "Chalco": [
+    86.1,
+    53.97
+  ],
+  "Chapa de Mota": [
+    49.44,
+    22.84
+  ],
+  "Chapultepec": [
+    49.24,
+    60.34
+  ],
+  "Chiautla": [
+    80.39,
+    39.08
+  ],
+  "Chicoloapan": [
+    82.74,
+    48.79
+  ],
+  "Chiconcuac": [
+    79.33,
+    40.18
+  ],
+  "Chimalhuacán": [
+    80.17,
+    47.97
+  ],
+  "Coacalco de Berriozábal": [
+    72.27,
+    37.34
+  ],
+  "Coatepec Harinas": [
+    36.66,
+    73.44
+  ],
+  "Cocotitlán": [
+    84.72,
+    56.79
+  ],
+  "Coyotepec": [
+    67.27,
+    28.63
+  ],
+  "Cuautitlán": [
+    68.29,
+    34.3
+  ],
+  "Cuautitlán Izcalli": [
+    66.21,
+    35.96
+  ],
+  "Donato Guerra": [
+    20.33,
+    51.18
+  ],
+  "Ecatepec de Morelos": [
+    74.49,
+    40.01
+  ],
+  "Ecatzingo": [
+    91.45,
+    66.61
+  ],
+  "El Oro": [
+    23.19,
+    25.21
+  ],
+  "Huehuetoca": [
+    63.39,
+    27.46
+  ],
+  "Hueypoxtla": [
+    76.54,
+    18.55
+  ],
+  "Huixquilucan": [
+    59.36,
+    50
+  ],
+  "Isidro Fabela": [
+    56.52,
+    40.68
+  ],
+  "Ixtapaluca": [
+    86.69,
+    50.33
+  ],
+  "Ixtapan de la Sal": [
+    43.01,
+    77.15
+  ],
+  "Ixtapan del Oro": [
+    14.97,
+    54
+  ],
+  "Ixtlahuaca": [
+    37.26,
+    36.95
+  ],
+  "Jalatlaco": [
+    58.65,
+    61.27
+  ],
+  "Jaltenco": [
+    73.09,
+    33.47
+  ],
+  "Jilotepec": [
+    45.55,
+    12.98
+  ],
+  "Jilotzingo": [
+    57.77,
+    42.6
+  ],
+  "Jiquipilco": [
+    46.67,
+    37.01
+  ],
+  "Jocotitlán": [
+    38.23,
+    29.86
+  ],
+  "Joquicingo": [
+    51.53,
+    68.57
+  ],
+  "Juchitepec": [
+    84.1,
+    62.58
+  ],
+  "La Paz": [
+    80.01,
+    50.9
+  ],
+  "Lerma": [
+    53.26,
+    52.13
+  ],
+  "Malinalco": [
+    52.82,
+    76.48
+  ],
+  "Melchor Ocampo": [
+    70.19,
+    32.63
+  ],
+  "Metepec": [
+    48.18,
+    57.94
+  ],
+  "Mexicaltzingo": [
+    48.55,
+    59.42
+  ],
+  "Morelos": [
+    45.05,
+    28.6
+  ],
+  "Naucalpan de Juárez": [
+    61.08,
+    45.57
+  ],
+  "Nextlalpan": [
+    72.51,
+    32.97
+  ],
+  "Nezahualcóyotl": [
+    75.94,
+    47.04
+  ],
+  "Nicolás Romero": [
+    57.48,
+    36.93
+  ],
+  "Nopaltepec": [
+    90.16,
+    26.82
+  ],
+  "Ocoyoacac": [
+    56.79,
+    56.55
+  ],
+  "Ocuilan": [
+    56.45,
+    71.12
+  ],
+  "Otumba": [
+    87.31,
+    34.41
+  ],
+  "Otzoloapan": [
+    11.25,
+    67.09
+  ],
+  "Otzolotepec": [
+    51.04,
+    46.72
+  ],
+  "Ozumba": [
+    87.83,
+    64.85
+  ],
+  "Papalotla": [
+    81.69,
+    40.35
+  ],
+  "Polotitlán": [
+    35.55,
+    3.98
+  ],
+  "Rayón": [
+    47.77,
+    63.61
+  ],
+  "San Antonio La Isla": [
+    47.97,
+    61.67
+  ],
+  "San Felipe del Progreso": [
+    24.4,
+    33.78
+  ],
+  "San Martín de las Pirámides": [
+    82.83,
+    34.06
+  ],
+  "San Mateo Atenco": [
+    50.28,
+    56.33
+  ],
+  "San Simón de Guerrero": [
+    26.09,
+    72.52
+  ],
+  "Santo Tomás": [
+    11.7,
+    61.01
+  ],
+  "Soyaniquilpan de Juárez": [
+    49.93,
+    13.01
+  ],
+  "Sultepec": [
+    27.12,
+    82.87
+  ],
+  "Tecámac": [
+    76.71,
+    32.95
+  ],
+  "Tejupilco": [
+    12.87,
+    76.31
+  ],
+  "Temamatla": [
+    83.58,
+    57.59
+  ],
+  "Temascalapa": [
+    82.27,
+    29.11
+  ],
+  "Temascalcingo": [
+    24.71,
+    18.8
+  ],
+  "Temascaltepec": [
+    28.24,
+    66.41
+  ],
+  "Temoaya": [
+    46.85,
+    43.87
+  ],
+  "Tenancingo": [
+    48.98,
+    73.06
+  ],
+  "Tenango del Aire": [
+    83.87,
+    60
+  ],
+  "Tenango del Valle": [
+    47.13,
+    67.37
+  ],
+  "Teoloyucán": [
+    68.3,
+    30.21
+  ],
+  "Teotihuacán": [
+    80.09,
+    35.37
+  ],
+  "Tepetlaoxtoc": [
+    86.37,
+    39.38
+  ],
+  "Tepetlixpa": [
+    85.47,
+    66.04
+  ],
+  "Tepotzotlán": [
+    61.58,
+    32.89
+  ],
+  "Tequixquiac": [
+    69.84,
+    22.04
+  ],
+  "Texcaltitlán": [
+    32.83,
+    70.75
+  ],
+  "Texcalyacac": [
+    53.53,
+    66.19
+  ],
+  "Texcoco": [
+    87.59,
+    44.71
+  ],
+  "Tezoyuca": [
+    77.57,
+    38.29
+  ],
+  "Tianguistenco": [
+    57.28,
+    63.81
+  ],
+  "Timilpan": [
+    40.92,
+    21.42
+  ],
+  "Tlalmanalco": [
+    91.79,
+    55.32
+  ],
+  "Tlalnepantla": [
+    72.07,
+    41.55
+  ],
+  "Tlatlaya": [
+    16.24,
+    91.61
+  ],
+  "Toluca": [
+    44.65,
+    54.98
+  ],
+  "Tonatico": [
+    45.82,
+    80.61
+  ],
+  "Tultepec": [
+    70.64,
+    34.61
+  ],
+  "Tultitlán": [
+    67.88,
+    39.31
+  ],
+  "Valle de Bravo": [
+    20.82,
+    62.28
+  ],
+  "Villa de Allende": [
+    22.53,
+    47.21
+  ],
+  "Villa del Carbón": [
+    52.86,
+    29.61
+  ],
+  "Villa Guerrero": [
+    42.31,
+    71.1
+  ],
+  "Villa Victoria": [
+    27.54,
+    44.93
+  ],
+  "Xonacatlán": [
+    53.65,
+    47.39
+  ],
+  "Zacazonapan": [
+    14.88,
+    69.47
+  ],
+  "Zacualpan": [
+    36.91,
+    83.59
+  ],
+  "Zinacatepec": [
+    37.43,
+    58.07
+  ],
+  "Zumpahuacan": [
+    49.76,
+    79.9
+  ],
+  "Zumpango": [
+    73.15,
+    28.79
+  ]
+}

@@ -21,9 +21,9 @@ class ReporteService
             ->with(['paciente:id,primer_ap,segundo_ap,nombres,municipio', 'asesoria_canalizacion:id,descripcion']);
 
         if ($desde)
-            $queryEspecialista->whereDate('created_at', '>=', $desde);
+            $queryEspecialista->whereDate('fecha_asesoria', '>=', $desde);
         if ($hasta)
-            $queryEspecialista->whereDate('created_at', '<=', $hasta);
+            $queryEspecialista->whereDate('fecha_asesoria', '<=', $hasta);
 
         $asesorias = $queryEspecialista->orderBy('created_at', 'desc')->get();
 
@@ -69,9 +69,9 @@ class ReporteService
             ->whereNotNull('br_pacientes.municipio');
 
         if ($desde)
-            $queryGlobal->whereDate('br_asesorias.created_at', '>=', $desde);
+            $queryGlobal->whereDate('br_asesorias.fecha_asesoria', '>=', $desde);
         if ($hasta)
-            $queryGlobal->whereDate('br_asesorias.created_at', '<=', $hasta);
+            $queryGlobal->whereDate('br_asesorias.fecha_asesoria', '<=', $hasta);
 
         $totalMunicipios = $queryGlobal->distinct('br_pacientes.municipio')->count('br_pacientes.municipio');
 
@@ -82,9 +82,9 @@ class ReporteService
             ->whereNotNull('br_pacientes.municipio');
 
         if ($desde)
-            $queryEspecialista->whereDate('br_asesorias.created_at', '>=', $desde);
+            $queryEspecialista->whereDate('br_asesorias.fecha_asesoria', '>=', $desde);
         if ($hasta)
-            $queryEspecialista->whereDate('br_asesorias.created_at', '<=', $hasta);
+            $queryEspecialista->whereDate('br_asesorias.fecha_asesoria', '<=', $hasta);
 
         $municipiosEspecialista = $queryEspecialista->distinct('br_pacientes.municipio')->count('br_pacientes.municipio');
 
@@ -100,15 +100,15 @@ class ReporteService
     private function getStatsDiarias($directorio_id, $desde, $hasta): array
     {
         $subquery = DB::table('br_asesorias')
-            ->select(DB::raw('DATE(created_at) as fecha'), DB::raw('COUNT(*) as total'))
+            ->select(DB::raw('DATE(fecha_asesoria) as fecha'), DB::raw('COUNT(*) as total'))
             ->where('asesor_atendio_id', $directorio_id);
 
         if ($desde)
-            $subquery->whereDate('created_at', '>=', $desde);
+            $subquery->whereDate('fecha_asesoria', '>=', $desde);
         if ($hasta)
-            $subquery->whereDate('created_at', '<=', $hasta);
+            $subquery->whereDate('fecha_asesoria', '<=', $hasta);
 
-        $results = $subquery->groupBy(DB::raw('DATE(created_at)'))->get();
+        $results = $subquery->groupBy(DB::raw('DATE(fecha_asesoria)'))->get();
 
         if ($results->isEmpty()) {
             return ['max' => 0, 'min' => 0];
@@ -136,7 +136,7 @@ class ReporteService
                 'municipios_atendidos' => $asesorias->filter(fn($a) => $a->paciente)->pluck('paciente.municipio')->filter()->unique()->count(),
             ],
             'por_municipio' => $asesorias->filter(fn($a) => $a->paciente && $a->paciente->municipio)->groupBy('paciente.municipio')->map(fn($g, $m) => ['municipio' => $m, 'cantidad' => $g->count()])->values(),
-            'por_mes' => $asesorias->groupBy(fn($a) => substr($a->created_at, 0, 7))->map(fn($g, $m) => ['mes' => $m, 'cantidad' => $g->count()])->sortKeys()->values(),
+            'por_mes' => $asesorias->groupBy(fn($a) => substr($a->fecha_asesoria, 0, 7))->map(fn($g, $m) => ['mes' => $m, 'cantidad' => $g->count()])->sortKeys()->values(),
             'por_estado' => $asesorias->groupBy('estado_asesoria')->map(fn($g, $e) => ['estado' => $e, 'cantidad' => $g->count()])->values(),
             'lista_asesorias' => $asesorias->map(fn($a) => [
                 'id' => $a->id,

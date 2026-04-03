@@ -8,6 +8,7 @@ use App\Models\BrDirectorio;
 use App\Services\ReporteAvanzadoService;
 use App\Http\Resources\EspecialistaReporteResource;
 use Illuminate\Support\Facades\Auth;
+use Barryvdh\DomPDF\Facade\Pdf;
 
 class ReporteAvanzadoController extends Controller
 {
@@ -64,7 +65,7 @@ class ReporteAvanzadoController extends Controller
 
             // ── Resolver directorio según el rol ──────────────────────
             if ($tipo_usuario === 'ESPECIALISTA') {
-                $directorio = $user->directorio;
+                $directorio = $user->directorios()->first();
                 if (!$directorio) {
                     return response()->json(
                         $this->typeResponse($this->respuesta_padre, 'especialista_no_directorio', [])
@@ -183,5 +184,77 @@ class ReporteAvanzadoController extends Controller
         };
 
         return response()->stream($callback, 200, $headers);
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // GET /api/v1/reportes/tablero/pdf
+    // Genera PDF del Tablero General con diseño institucional
+    // Parámetros: desde, hasta (opcionales)
+    // ─────────────────────────────────────────────────────────────────
+    public function tablero_pdf(Request $request)
+    {
+        try {
+            $desde = $request->get('desde');
+            $hasta = $request->get('hasta');
+
+            $datos = $this->service->prepararDatosTablero($desde, $hasta);
+
+            $pdf = Pdf::loadView('pdf.tablero-general', $datos)
+                ->setPaper('a4', 'portrait');
+
+            $filename = 'Tablero_General_' . now()->format('Y-m-d_His') . '.pdf';
+
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            return response()->json(
+                $this->typeResponse($this->respuesta_padre, 'reporte_individual_fail', ['error' => $e->getMessage()]),
+                500
+            );
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────
+    // GET /api/v1/reportes/chart/pdf?tipo=especialidad|municipio|mensual
+    // Genera PDF de una gráfica individual del Tablero General
+    // Parámetros: tipo (requerido), desde, hasta (opcionales)
+    // ─────────────────────────────────────────────────────────────────
+    public function chart_pdf(Request $request)
+    {
+        $tipo = $request->get('tipo');
+        $validos = ['especialidad', 'municipio', 'mensual'];
+        if (!in_array($tipo, $validos)) {
+            return response()->json(
+                $this->typeResponse($this->respuesta_padre, 'reporte_individual_fail', ['error' => 'tipo inválido. Use: especialidad, municipio o mensual']),
+                400
+            );
+        }
+        try {
+            $desde = $request->get('desde');
+            $hasta = $request->get('hasta');
+            $datos = $this->service->prepararDatosTablero($desde, $hasta);
+
+            $vistas = [
+                'especialidad' => 'pdf.chart-especialidad',
+                'municipio' => 'pdf.chart-municipio',
+                'mensual' => 'pdf.chart-mensual',
+            ];
+            $nombres = [
+                'especialidad' => 'Asesorias_Por_Especialidad',
+                'municipio' => 'Asesorias_Por_Municipio',
+                'mensual' => 'Distribucion_Mensual_Especialidad',
+            ];
+
+            $pdf = Pdf::loadView($vistas[$tipo], $datos)
+                ->setPaper('a4', 'portrait');
+
+            $filename = $nombres[$tipo] . '_' . now()->format('Y-m-d_His') . '.pdf';
+
+            return $pdf->download($filename);
+        } catch (\Exception $e) {
+            return response()->json(
+                $this->typeResponse($this->respuesta_padre, 'reporte_individual_fail', ['error' => $e->getMessage()]),
+                500
+            );
+        }
     }
 }

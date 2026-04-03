@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\catalogosController;
 use App\Http\Controllers\asesoriaController;
-
+use App\Http\Controllers\HistorialController;
 /************************************************
  * Rutas de autenticación
  ************************************************/
@@ -40,6 +40,13 @@ Route::prefix('v1')->group(function () {
             Route::get('especialista', [ReporteAvanzadoController::class, 'reporte_individual_especialista']);
             Route::get('especialistas', [ReporteAvanzadoController::class, 'listar_especialistas']);
             Route::get('exportar', [ReporteAvanzadoController::class, 'exportar_csv']);
+            Route::get('tablero/pdf', [ReporteAvanzadoController::class, 'tablero_pdf']);
+            Route::get('chart/pdf', [ReporteAvanzadoController::class, 'chart_pdf']);
+        });
+
+        // ─── Historial de Brigadas ─────────────────────────────────────────
+        Route::prefix('historial')->group(function () {
+            Route::get('ruta', [HistorialController::class, 'ruta']);
         });
 
 
