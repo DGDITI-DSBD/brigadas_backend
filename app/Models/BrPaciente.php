@@ -92,7 +92,7 @@ class BrPaciente extends Model
 
     public function scopeSearchByParamsPacientes($query, $params)
     {
-        Log::info('Aplicando scopeSearchByParamsPacientes con parámetros: ' . json_encode($params));
+        
         if (isset($params['nombre_completo']) && !empty($params['nombre_completo'])) {
             $query->whereRaw("CONCAT(primer_ap, ' ', segundo_ap, ' ', nombres) LIKE ?", ['%' . $params['nombre_completo'] . '%']);
         }

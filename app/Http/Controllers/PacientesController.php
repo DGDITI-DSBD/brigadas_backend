@@ -108,7 +108,7 @@ class PacientesController extends Controller
     public function updateDirectorioBeneficiarias(Request $request, $id)
     {
         try {
-            Log::info("Actualizando beneficiaria ID: $id", ['request_data' => $request->all()]);
+       
 
             $UpData = $request->only([
                 'ct_edo_civil',
@@ -141,7 +141,7 @@ class PacientesController extends Controller
 
             $paciente = BrPaciente::findOrFail($id);
 
-            Log::info("Beneficiaria encontrada", ['beneficiaria' => $paciente->toArray()]);
+        
 
             switch ($tipoUsuario) {
                 case 'ADMINISTRADOR':
@@ -203,7 +203,7 @@ class PacientesController extends Controller
 
             $paciente->refresh();
 
-            Log::info("Beneficiaria ID: $id actualizada exitosamente", ['updated_data' => $paciente->toArray()]);
+     
 
             return response()->json([
                 'success' => true,
@@ -214,7 +214,7 @@ class PacientesController extends Controller
                 ],
             ]);
         } catch (\Exception $e) {
-            Log::error("Error al actualizar la beneficiaria ID: $id", ['error' => $e->getMessage()]);
+            
             return response()->json([
                 'success' => false,
                 'message' => 'Error al actualizar la beneficiaria: ' . $e->getMessage(),

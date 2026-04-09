@@ -4,6 +4,7 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Log;
 
 class BrAsesoria extends Model
 {
@@ -49,22 +50,16 @@ class BrAsesoria extends Model
         return $this->hasMany(BrAsesoriasPreguntasRespuestas::class, 'asesoria_id');
     }
 
-    public function scopeSearchByParamsPacientes($query, $params)
+    public function scopeSearchByParamsPacientes($query, $general)
     {
-        if (isset($params['nombre_completo']) && !empty($params['nombre_completo'])) {
-            $query->whereHas('paciente', function ($q) use ($params) {
-                $q->whereRaw("CONCAT(primer_ap, ' ', segundo_ap, ' ', nombres) LIKE ?", ['%' . $params['nombre_completo'] . '%']);
-            });
-        }
-        if (isset($params['folio_relacionado']) && !empty($params['folio_relacionado'])) {
-            $query->whereHas('paciente', function ($q) use ($params) {
-                $q->orWhere('folio_relacionado', 'LIKE', '%' . $params['folio_relacionado'] . '%');
-            });
-        }
-
-        if (isset($params['curp']) && !empty($params['curp'])) {
-            $query->whereHas('paciente', function ($q) use ($params) {
-                $q->orWhere('curp', 'LIKE', '%' . $params['curp'] . '%');
+  
+        if($general) {
+            return $query->whereHas('paciente', function ($q) use ($general) {
+                $q->where('nombres', 'like', "%$general%")
+                  ->orWhere('segundo_ap', 'like', "%$general%")
+                  ->orWhere('primer_ap', 'like', "%$general%")
+                  ->orWhere('curp', 'like', "%$general%")
+                  ->orWhere('folio_relacionado', 'like', "%$general%");
             });
         }
 
@@ -87,5 +82,23 @@ class BrAsesoria extends Model
         }
         return $query;
         
+    }
+
+    public function scopeSearchByMunicipio($query, $municipio_id)
+    {
+        if($municipio_id) {
+            return $query->whereHas('paciente', function ($q) use ($municipio_id) {
+                $q->where('ct_municipio', $municipio_id);
+            });
+        }
+        return $query;
+    }
+
+    public function scopeSearchByFecha($query, $fecha)
+    {
+        if($fecha) {
+            return $query->whereDate('fecha_asesoria', $fecha);
+        }
+        return $query;
     }
 }

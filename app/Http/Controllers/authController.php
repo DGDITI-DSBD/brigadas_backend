@@ -27,7 +27,7 @@ class authController extends Controller
                 construirINF: construir información
             */
 
-        Log::info("credenciales", [$request->all()]);
+     
         $obtieneCRD = $request -> only('nombre_usuario', 'password');
         $token = JWTAuth::attempt($obtieneCRD);
         $this -> construirINF = [];
@@ -42,7 +42,7 @@ class authController extends Controller
         $this -> tipo_hijo = null;
 
         if($token){
-            Log::info('user', [JWTAuth::user()]);
+        
             if(JWTAuth::user() -> estado != 1){
                     $this -> tipo_hijo = 'login_check_user_fail';
                     return response() -> json($this -> typeResponse($this -> tipo_response, $this -> tipo_hijo, $this -> construirINF));
@@ -71,10 +71,10 @@ class authController extends Controller
         
             
             $token          = JWTAuth::getToken();
-            Log::info("TOKEN", [$token]);
+          
             if($token){
             $assignmentUser = JWTAuth::toUser($token);
-            Log::info("directorio", [$assignmentUser ? $assignmentUser->directorio : null]);
+      
             $this -> construirINF = ['token'        => (string)$token,
                                      'member_auth' => $assignmentUser ? JWTAuth::user() : null,
                                      'directorios' => $assignmentUser ? JWTAuth::user()->directorio : null,
@@ -106,7 +106,7 @@ class authController extends Controller
                 return response() -> json($this -> typeResponse($this -> tipo_response, $this -> tipo_hijo, $this -> construirINF));
             }
             }else{
-                Log::info("entre no auth", [$token]);
+               
                 $this -> construirINF = ['token'    => null,
                                      'member_check' => null,
                                      'status'       => 'Not-Authorization'];

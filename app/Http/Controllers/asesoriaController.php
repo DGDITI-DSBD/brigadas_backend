@@ -60,14 +60,17 @@ class asesoriaController extends Controller
              $this -> respuesta_padre = 'asesorias';
              //$_type_user = 'ADMINISTRADOR';
              
-             $paramsSearch = $request->params;
+             //$paramsSearch = $request->params;
              $asesorias = BrAsesoria::with(['paciente', 'preguntasRespuestas', 'preguntasRespuestas.pregunta', 'asesoria_canalizacion' ,'directorio', 'directorio.tipoAsesoria']);
              $deepQuery = null;
+            
              if($_type_user === 'ADMINISTRADOR' || $_type_user === 'COORDINADOR'){
 
                 
-                $deepQuery = $asesorias->searchByParamsPacientes($paramsSearch ?? [])
+                $deepQuery = $asesorias->searchByParamsPacientes($request->get('general') ?? [])
                                        ->searchByProfesionista($request->get('directorio_id' ) ?? null) // Filtrar directorios asociados a cada profesión.
+                                       ->searchByMunicipio($request->get('municipio_id' ) ?? null) // Filtrar por municipio.
+                                       ->searchByFecha($request->get('fecha_asesoria') ?? null) // Filtrar por fecha de asesoría.
                                        ->searchByEspecializacion($request->get('especialidad_id' ) ?? 1 );
                             
             } else {
@@ -75,7 +78,9 @@ class asesoriaController extends Controller
                 $deepUser = $this->Auth->user()->directorio->id;
                 //$deepUser = 3;
 
-                $deepQuery = $asesorias->searchByParamsPacientes($paramsSearch ?? [])
+                $deepQuery = $asesorias->searchByParamsPacientes($request->get('general') ?? [])
+                                        ->searchByMunicipio($request->get('municipio_id') ?? null) // Filtrar por municipio.
+                                        ->searchByFecha($request->get('fecha_asesoria') ?? null) // Filtrar por fecha de asesoría.
                                         ->searchByProfesionista($deepUser);
 
             }
@@ -126,7 +131,7 @@ class asesoriaController extends Controller
                     }
                         $this -> respuesta_hijo = 'consulta_exitosa';
                         $this -> construir_respuesta = $beneficiaria_asesorias;
-                    Log::info('Beneficiarias con asesorías para ADMINISTRADOR: ' . $beneficiaria_asesorias->count());
+                 
                 break;
 
                 case 'COORDINADOR':
@@ -189,7 +194,7 @@ class asesoriaController extends Controller
                 
 
         }catch(\Exception $e){
-            Log::error('Error al consultar beneficiarias con asesorías: ' . $e->getMessage(), ['exception' => $e]);
+
             $this -> respuesta_hijo = 'busqueda_fail';
             $this -> construir_respuesta = ['error' => $e -> getMessage()];
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
@@ -298,7 +303,7 @@ class asesoriaController extends Controller
             $this -> construir_respuesta = ['errors' => $e->errors()];
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 422);
         }catch(\Exception $e){
-            Log::error('Error al crear asesoría: ' . $e->getMessage() . ' | Request: ' . json_encode($request->all()));
+           
             $this -> respuesta_hijo = 'creacion_asesoria_fail';
             $this -> construir_respuesta = ['error' => $e -> getMessage()];
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 500);
@@ -387,7 +392,6 @@ class asesoriaController extends Controller
             $this -> respuesta_padre = 'asesorias';
 
                 // Validación de datos de preguntas y opciones 
-                Log::info('Validando datos de preguntas y respuestas para asesoría con datos: ' . json_encode($request->all()));
                 $validatedData = $request->validate([
                     'asesoria_id' => 'required|exists:br_asesorias,id',
                     'pregunta_id' => 'required|array',
@@ -425,7 +429,7 @@ class asesoriaController extends Controller
                     $this -> construir_respuesta = ['message' => 'Preguntas y respuestas insertadas exitosamente.'];
                     return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
                 } catch (\Throwable $th) {
-                        Log::error('Error al iniciar la transacción para insertar preguntas y respuestas: ' . $th->getMessage() . ' | Data: ' . json_encode($preguntas_respuestas_data));
+                        
                         $this -> respuesta_hijo = 'excepcion_transaccion_preguntas_respuestas';
                         $this -> construir_respuesta = ['error' => 'Error al iniciar la transacción: ' . $th->getMessage()];
                         return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
@@ -435,7 +439,7 @@ class asesoriaController extends Controller
 
             }catch(\Exception $e){
                     $this -> respuesta_hijo = 'insercion_preguntas_respuestas_fail';
-                    Log::error('Error al insertar preguntas y respuestas: ' . $e->getMessage() . ' | Request: ' . json_encode($request->all()));
+                    
                     $this -> construir_respuesta = ['error' => 'Error al insertar preguntas y respuestas: ' . $e->getMessage()];
                     return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
             }
@@ -616,7 +620,7 @@ class asesoriaController extends Controller
     public function get_beneficiarias_historico(Request $request){
             try{
                 $this -> respuesta_padre = 'catalogos';
-                Log::info('Iniciando consulta de beneficiarias en histórico con parámetros: ' . json_encode($request->all()));
+             
 
                 $beneficiarias_historico = BrPadronHistorico::select('folio_relacionado', 
                 'primer_ap', 'segundo_ap', 'nombres', 'fecha_nacimiento', 'curp', 'ct_municipio', 'municipio', 
@@ -648,7 +652,7 @@ class asesoriaController extends Controller
         try{
             $this -> respuesta_padre = 'pacientes';
 
-            Log::info('Iniciando importación de padrón histórico con datos: ' . json_encode($request->all()));
+         
 
             $validatedData = $request->validate([
                 'folio_relacionado' => 'required|string',
@@ -749,12 +753,11 @@ class asesoriaController extends Controller
 
         }catch(\Illuminate\Validation\ValidationException $e){
             $this -> respuesta_hijo = 'validacion_paciente_fail';
-            Log::info('Error de validación al importar paciente desde padrón histórico: ' . json_encode($e->errors()) . ' | Request: ' . json_encode($request->all()));
+            
             $this -> construir_respuesta = ['errors' => $e->errors()];
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 422);
         }catch(\Exception $e){
-            Log::info('Datos validados para importar paciente desde padrón histórico: ' . json_encode($validatedData));
-            Log::error('Error al importar paciente desde padrón histórico: ' . $e->getMessage() . ' | Request: ' . json_encode($request->all()));
+          
             $this -> respuesta_hijo = 'creacion_paciente_fail';
             $this -> construir_respuesta = ['error' => 'Error al crear paciente: ' . $e->getMessage()];
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 500);
@@ -770,7 +773,7 @@ class asesoriaController extends Controller
         try{
             $this -> respuesta_padre = 'asesorias';
 
-            Log::info('Iniciando creación de asesoría completa con datos: ' . json_encode($request->all()));
+          
 
             // Validar todos los datos necesarios
             $validatedData = $request->validate([
@@ -846,7 +849,6 @@ class asesoriaController extends Controller
                 // Calcular edad automáticamente desde fecha de nacimiento
                 if (isset($pacienteData['fecha_nacimiento'])) {
                     $pacienteData['edad'] = $this->calcularEdad($pacienteData['fecha_nacimiento']);
-                    Log::info('Edad calculada: ' . $pacienteData['edad'] . ' años desde fecha: ' . $pacienteData['fecha_nacimiento']);
                 }
                 
                 $paciente = BrPaciente::where('folio_relacionado', $pacienteData['folio_relacionado'])
@@ -896,10 +898,8 @@ class asesoriaController extends Controller
                         'estado_padron'          => 'ACTIVO',
                     ]);
 
-                    Log::info('Paciente creado con ID: ' . $paciente->id);
-                } else {
-                    Log::info('Paciente existente encontrado con ID: ' . $paciente->id);
-                }
+             
+                } 
 
                 // PASO 2: Crear asesoría
                 $asesoriaData = $validatedData['asesoria'];
@@ -913,7 +913,7 @@ class asesoriaController extends Controller
                     'fecha_asesoria'            => $asesoriaData['fecha_asesoria'] ?? now(),
                 ]);
 
-                Log::info('Asesoría creada con ID: ' . $asesoria->id);
+            
 
                 // PASO 3: Crear preguntas y respuestas
                 $respuestasData = $validatedData['respuestas'];
@@ -932,7 +932,7 @@ class asesoriaController extends Controller
 
                 BrAsesoriasPreguntasRespuestas::insert($preguntas_respuestas_data);
 
-                Log::info('Preguntas y respuestas insertadas: ' . count($preguntas_respuestas_data) . ' registros');
+      
 
                 // Commit de la transacción
                 DB::commit();
@@ -950,7 +950,7 @@ class asesoriaController extends Controller
                 // Rollback automático en caso de error
                 DB::rollBack();
                 
-                Log::error('Error en transacción de asesoría completa: ' . $th->getMessage() . ' | Trace: ' . $th->getTraceAsString());
+                
                 
                 $this -> respuesta_hijo = 'creacion_asesoria_completa_fail';
                 $this -> construir_respuesta = ['error' => 'Error en la transacción: ' . $th->getMessage()];
@@ -960,10 +960,10 @@ class asesoriaController extends Controller
         }catch(\Illuminate\Validation\ValidationException $e){
             $this -> respuesta_hijo = 'validacion_asesoria_fail';
             $this -> construir_respuesta = ['errors' => $e->errors()];
-            Log::info('Error de validación al crear asesoría completa: ' . json_encode($e->errors()) . ' | Request: ' . json_encode($request->all()));
+   
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 422);
         }catch(\Exception $e){
-            Log::error('Error al crear asesoría completa: ' . $e->getMessage() . ' | Request: ' . json_encode($request->all()));
+            
             $this -> respuesta_hijo = 'creacion_asesoria_completa_fail';
             $this -> construir_respuesta = ['error' => $e -> getMessage()];
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 500);
@@ -1028,10 +1028,10 @@ class asesoriaController extends Controller
         }catch(\Illuminate\Validation\ValidationException $e){
             $this -> respuesta_hijo = 'validacion_paciente_fail';
             $this -> construir_respuesta = ['errors' => $e->errors()];
-            Log::error('Error de validación al actualizar paciente: ' . json_encode($e->errors()) . ' | Request: ' . json_encode($request->all()));
+            
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 422);
         }catch(\Exception $e){
-            Log::error('Error al actualizar paciente: ' . $e->getMessage() . ' | Request: ' . json_encode($request->all()));
+            
             $this -> respuesta_hijo = 'actualizacion_paciente_fail';
             $this -> construir_respuesta = ['error' => $e -> getMessage()];
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 500);
@@ -1047,7 +1047,7 @@ class asesoriaController extends Controller
         try{
             $this -> respuesta_padre = 'asesorias';
 
-            Log::info('Iniciando actualización de asesoría completa con ID: ' . $id_asesoria . ' | Datos: ' . json_encode($request->all()));
+
 
             // Buscar la asesoría
             $asesoria = BrAsesoria::find($id_asesoria);
@@ -1126,18 +1126,17 @@ class asesoriaController extends Controller
                         // Calcular edad automáticamente desde fecha de nacimiento si fue enviada
                         if (isset($validatedData['paciente']['fecha_nacimiento'])) {
                             $validatedData['paciente']['edad'] = $this->calcularEdad($validatedData['paciente']['fecha_nacimiento']);
-                            Log::info('Edad calculada en actualización: ' . $validatedData['paciente']['edad'] . ' años desde fecha: ' . $validatedData['paciente']['fecha_nacimiento']);
+                           
                         }
                         
                         $paciente->update($validatedData['paciente']);
-                        Log::info('Paciente actualizado con ID: ' . $paciente->id);
                     }
                 }
 
                 // PASO 2: Actualizar datos de la asesoría (si se enviaron)
                 if (isset($validatedData['asesoria']) && !empty($validatedData['asesoria'])) {
                     $asesoria->update($validatedData['asesoria']);
-                    Log::info('Asesoría actualizada con ID: ' . $asesoria->id);
+                    
                 }
 
                 // PASO 3: Actualizar preguntas y respuestas (si se enviaron)
@@ -1145,7 +1144,7 @@ class asesoriaController extends Controller
                     // Eliminar todas las respuestas existentes de la asesoría
                     // Esto garantiza que las opciones múltiples se actualicen correctamente
                     $respuestasEliminadas = BrAsesoriasPreguntasRespuestas::where('asesoria_id', $asesoria->id)->delete();
-                    Log::info('Respuestas eliminadas antes de actualizar: ' . $respuestasEliminadas);
+                  
 
                     // Preparar datos para inserción masiva
                     $nuevasRespuestas = [];
@@ -1163,7 +1162,6 @@ class asesoriaController extends Controller
                     // Insertar todas las nuevas respuestas
                     if (!empty($nuevasRespuestas)) {
                         BrAsesoriasPreguntasRespuestas::insert($nuevasRespuestas);
-                        Log::info('Preguntas y respuestas insertadas en actualización: ' . count($nuevasRespuestas) . ' registros');
                     }
                 }
 
@@ -1182,7 +1180,7 @@ class asesoriaController extends Controller
                 // Rollback automático en caso de error
                 DB::rollBack();
                 
-                Log::error('Error en transacción de actualización de asesoría completa: ' . $th->getMessage() . ' | Trace: ' . $th->getTraceAsString());
+                
                 
                 $this -> respuesta_hijo = 'actualizacion_asesoria_completa_fail';
                 $this -> construir_respuesta = ['error' => 'Error en la transacción: ' . $th->getMessage()];
@@ -1192,10 +1190,10 @@ class asesoriaController extends Controller
         }catch(\Illuminate\Validation\ValidationException $e){
             $this -> respuesta_hijo = 'validacion_asesoria_fail';
             $this -> construir_respuesta = ['errors' => $e->errors()];
-            Log::error('Error de validación al actualizar asesoría completa: ' . json_encode($e->errors()) . ' | Request: ' . json_encode($request->all()));
+            
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 422);
         }catch(\Exception $e){
-            Log::error('Error al actualizar asesoría completa: ' . $e->getMessage() . ' | Request: ' . json_encode($request->all()));
+            
             $this -> respuesta_hijo = 'actualizacion_asesoria_completa_fail';
             $this -> construir_respuesta = ['error' => $e -> getMessage()];
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 500);

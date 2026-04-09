@@ -29,7 +29,7 @@ class accesoController extends Controller
     public function getFiltersListUsuario(Request $request)
     {
         try{
-            Log::info('Filtros recibidos', $request->all());
+         
             $tipo_usuario   = $request['tipo_usuario'];
             $estado         = $request['estatus'];
             $search         = $request['search'];
@@ -62,9 +62,7 @@ class accesoController extends Controller
     {
         try {
             DB::beginTransaction();
-            log::info('Datos recibidos para crear usuario', $request->all());
-
-
+         
             switch ($request['tipo_usuario']) {
                 case 'ADMINISTRADOR':
                     $usuario = BrAcceso::create([
@@ -179,7 +177,7 @@ class accesoController extends Controller
     {
         try {
             DB::beginTransaction();
-            Log::info('Datos recibidos para actualizar usuario', $request->all());
+           
 
             $usuario        = BrAcceso::findOrFail($id);
             $tipo_usuario   = $request['tipo_usuario'] ?? $usuario->tipo_usuario;
