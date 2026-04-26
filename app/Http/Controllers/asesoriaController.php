@@ -54,14 +54,15 @@ class asesoriaController extends Controller
 
     public function asesoria_beneficiaria(Request $request){
          try{
-
+             $currentYear = date('Y');
              $_type_user = $this->Auth->user()->tipo_usuario;
             
              $this -> respuesta_padre = 'asesorias';
              //$_type_user = 'ADMINISTRADOR';
              
              //$paramsSearch = $request->params;
-             $asesorias = BrAsesoria::with(['paciente', 'preguntasRespuestas', 'preguntasRespuestas.pregunta', 'asesoria_canalizacion' ,'directorio', 'directorio.tipoAsesoria']);
+             $asesorias = BrAsesoria::with(['paciente', 'preguntasRespuestas', 'preguntasRespuestas.pregunta', 'asesoria_canalizacion' ,'directorio', 'directorio.tipoAsesoria'])
+                                    ->searchByPeriodo($request->get('periodo') ?? $currentYear);
              $deepQuery = null;
             
              if($_type_user === 'ADMINISTRADOR' || $_type_user === 'COORDINADOR'){
@@ -85,14 +86,31 @@ class asesoriaController extends Controller
 
             }
 
-            if($deepQuery->get()->isEmpty()){
-                $this -> respuesta_hijo = 'consulta_sin_datos';
-                $this -> construir_respuesta = [];
-            }
                 $this -> respuesta_hijo = 'consulta_exitosa';
-                $this -> construir_respuesta = $deepQuery
-                ->orderBy('fecha_asesoria', 'desc')
-                ->get();
+
+                $all_data               = (clone $deepQuery)->orderBy('created_at', 'desc')->paginate(100);
+                Log::info("Consulta obtenida de all_data", ['all_data' => $all_data]);
+
+
+                // Estadisticas
+                $registros_corriente    = (clone $deepQuery)->whereDate('created_at', now()->toDateString())->count();
+                $asesorias_abiertas     = (clone $deepQuery)->where('estado_asesoria', 'ABIERTA')->count();
+                $asesorias_canalizadas  = (clone $deepQuery)->where('estado_asesoria', 'CANALIZADA')->count();
+                $asesorias_cerradas_mes = (clone $deepQuery)->where('estado_asesoria', 'CERRADA')->whereMonth('fecha_asesoria', now()->month)->count(); 
+                
+                
+                
+                $this -> construir_respuesta = 
+                    [
+                        'estadisticas' => [
+                            'registros_corriente' => $registros_corriente,
+                            'asesorias_abiertas' => $asesorias_abiertas,
+                            'asesorias_canalizadas' => $asesorias_canalizadas,
+                            'asesorias_cerradas_mes' => $asesorias_cerradas_mes,
+                        ],
+                        'data' => $all_data
+                    ];
+
                 return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
 
          }catch(Exception $e){
@@ -778,7 +796,7 @@ class asesoriaController extends Controller
             // Validar todos los datos necesarios
             $validatedData = $request->validate([
                 // Datos del paciente (para importar si no existe)
-                'paciente.folio_relacionado' => 'required|string',
+                'paciente.folio_relacionado' => 'nullable|string',
                 'paciente.primer_ap'         => 'required|string',
                 'paciente.segundo_ap'        => 'nullable|string',
                 'paciente.nombres'           => 'required|string',
@@ -851,10 +869,13 @@ class asesoriaController extends Controller
                     $pacienteData['edad'] = $this->calcularEdad($pacienteData['fecha_nacimiento']);
                 }
                 
-                $paciente = BrPaciente::where('folio_relacionado', $pacienteData['folio_relacionado'])
-                    ->orWhere(function($query) use ($pacienteData) {
-                        if (!empty($pacienteData['curp'])) {
-                            $query->where('curp', $pacienteData['curp']);
+                $paciente = BrPaciente::where('curp', $pacienteData['curp'])
+                    ->where(function($query) use ($pacienteData) {
+                        if ( !empty($pacienteData['folio_relacionado']) 
+                             || !is_null($pacienteData['folio_relacionado'])
+                             || $pacienteData['folio_relacionado'] !== 'S/D'
+                           ) {
+                            $query->where('folio_relacionado', $pacienteData['folio_relacionado']);
                         }
                     })
                     ->first();
@@ -862,9 +883,9 @@ class asesoriaController extends Controller
                 if (!$paciente) {
                     // Crear nuevo paciente
                     $paciente = BrPaciente::create([
-                        'folio_relacionado'      => $pacienteData['folio_relacionado'],
+                        'folio_relacionado'      => $pacienteData['folio_relacionado'] ?? null,
                         'primer_ap'              => $pacienteData['primer_ap'],
-                        'segundo_ap'             => $pacienteData['segundo_ap'] ?? '',
+                        'segundo_ap'             => $pacienteData['segundo_ap'] ?? 'XX',
                         'nombres'                => $pacienteData['nombres'],
                         'fecha_nacimiento'       => $pacienteData['fecha_nacimiento'] ?? null,
                         'edad'                   => $pacienteData['edad'] ?? null,
@@ -874,20 +895,20 @@ class asesoriaController extends Controller
                         'tp_id_oficial'          => $pacienteData['tp_id_oficial'] ?? null,
                         'id_oficial'             => $pacienteData['id_oficial'] ?? null,
                         'ct_ent_nac'             => $pacienteData['ct_ent_nac'] ?? null,
-                        'curp'                   => $pacienteData['curp'] ?? null,
-                        'calle'                  => $pacienteData['calle'] ?? null,
+                        'curp'                   => isset($pacienteData['curp']) ? strtoupper($this->remove_accents($pacienteData['curp'])) : null,
+                        'calle'                  => isset($pacienteData['calle']) ? strtoupper($this->remove_accents($pacienteData['calle'])) : null,
                         'num_ext'                => $pacienteData['num_ext'] ?? null,
                         'num_int'                => $pacienteData['num_int'] ?? null,
-                        'entre_calle'            => $pacienteData['entre_calle'] ?? null,
-                        'y_calle'                => $pacienteData['y_calle'] ?? null,
-                        'otra_referencia'        => $pacienteData['otra_referencia'] ?? null,
-                        'colonia'                => $pacienteData['colonia'] ?? null,
+                        'entre_calle'            => isset($pacienteData['entre_calle']) ? strtoupper($this->remove_accents($pacienteData['entre_calle'])) : null,
+                        'y_calle'                => isset($pacienteData['y_calle']) ? strtoupper($this->remove_accents($pacienteData['y_calle'])) : null,
+                        'otra_referencia'        => isset($pacienteData['otra_referencia']) ? strtoupper($this->remove_accents($pacienteData['otra_referencia'])) : null,
+                        'colonia'                => isset($pacienteData['colonia']) ? strtoupper($this->remove_accents($pacienteData['colonia'])) : null,
                         'ct_municipio'           => $pacienteData['ct_municipio'] ?? null,
-                        'municipio'              => $pacienteData['municipio'] ?? null,
+                        'municipio'              => isset($pacienteData['municipio']) ? strtoupper($this->remove_accents($pacienteData['municipio'])) : null,
                         'ct_localidad'           => $pacienteData['ct_localidad'] ?? null,
-                        'localidad'              => $pacienteData['localidad'] ?? null,
+                        'localidad'              => isset($pacienteData['localidad']) ? strtoupper($this->remove_accents($pacienteData['localidad'])) : null,
                         'ct_entidad_federativa'  => $pacienteData['ct_entidad_federativa'] ?? null,
-                        'entidad_federativa'     => $pacienteData['entidad_federativa'] ?? null,
+                        'entidad_federativa'     => isset($pacienteData['entidad_federativa']) ? strtoupper($this->remove_accents($pacienteData['entidad_federativa'])) : null,
                         'codigo_postal_id'       => $pacienteData['codigo_postal_id'],
                         'codigo_postal'          => $pacienteData['codigo_postal'] ?? null,
                         'telefono'               => $pacienteData['telefono'] ?? null,
@@ -1199,4 +1220,16 @@ class asesoriaController extends Controller
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 500);
         }
     }
+
+    public function remove_accents($string) {
+        return str_replace(
+            ['á', 'é', 'í', 'ó', 'ú', 'Á', 'É', 'Í', 'Ó', 'Ú'],
+            ['a', 'e', 'i', 'o', 'u', 'A', 'E', 'I', 'O', 'U'],
+            $string
+        );
+    }
+
+     /**
+     * Calcular edad a partir de la fecha de nacimiento
+     */
 }
