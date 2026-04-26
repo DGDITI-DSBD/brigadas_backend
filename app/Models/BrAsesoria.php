@@ -103,7 +103,7 @@ class BrAsesoria extends Model
     }
 
     public function scopeSearchByPeriodo($query, $periodo){
-        Log::info('Aplicando filtro de periodo: ', [$periodo]);
+
         if($periodo) {
             return $query->whereRaw('EXTRACT(YEAR FROM fecha_asesoria) = ?', [$periodo]);
         }

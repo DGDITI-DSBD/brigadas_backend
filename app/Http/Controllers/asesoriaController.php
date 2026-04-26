@@ -89,7 +89,6 @@ class asesoriaController extends Controller
                 $this -> respuesta_hijo = 'consulta_exitosa';
 
                 $all_data               = (clone $deepQuery)->orderBy('created_at', 'desc')->paginate(100);
-                Log::info("Consulta obtenida de all_data", ['all_data' => $all_data]);
 
 
                 // Estadisticas
