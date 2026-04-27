@@ -13,7 +13,7 @@ use App\Models\BrPadronHistorico;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
-use App\traits\carpeta_respuestas_t;
+use App\Traits\carpeta_respuestas_t;
 use Log;
 
 
