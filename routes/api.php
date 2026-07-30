@@ -57,6 +57,8 @@ Route::prefix('v1')->group(function () {
         Route::get('get-usuarios/{id}', [accesoController::class, 'getFieldsEditUsuario']);
         Route::put('update-usuarios/{id}', [accesoController::class, 'UpdateUsuario']);
         Route::delete('delete-usuarios/{id}', [accesoController::class, 'DeleteUsuario']);
+        Route::get('export-usuarios', [accesoController::class, 'exportUsuariosToCSV']);
+
 
 
         Route::get('directorio-beneficiarias'   , [PacientesController::class, 'getDirectorioBeneficiarias']);

@@ -66,71 +66,71 @@ class accesoController extends Controller
             switch ($request['tipo_usuario']) {
                 case 'ADMINISTRADOR':
                     $usuario = BrAcceso::create([
-                        'nombre_usuario' => $request['nombre_usuario'],
-                        'nombre_completo' => $request['nombres'] . ' ' . $request['primer_ap_dir'] . ' ' . $request['segundo_ap_dir'],
-                        'password' => bcrypt($request['password']),
-                        'password_plain' => $request['password'],
-                        'tipo_usuario' => $request['tipo_usuario'],
-                        'estado' => $request['estado'],
+                        'nombre_usuario'            => $request['nombre_usuario'],
+                        'nombre_completo'           => $request['nombres'] . ' ' . $request['primer_ap_dir'] . ' ' . $request['segundo_ap_dir'],
+                        'password'                  => bcrypt($request['password']),
+                        'password_plain'            => $request['password'],
+                        'tipo_usuario'              => $request['tipo_usuario'],
+                        'estado'                    => $request['estado'],
                     ]);
 
-                    $permisos = [1, 2, 3, 4];
+                    $permisos = [1, 2, 3, 4]; // 1 = Lectura, 2 = Inserción, 3 = Actualización, 4 = Eliminación
                     $privilegios = UsuarioPrivilegio::insert(
                         array_map(function ($permiso_id) use ($usuario) {
                             return [
-                                'usuario_id' => $usuario->id,
-                                'privilegio_id' => $permiso_id,
+                                'usuario_id'        => $usuario->id,
+                                'privilegio_id'     => $permiso_id,
                             ];
                         }, $permisos)
                     );
                     break;
                 case 'COORDINADOR':
                     $usuario = BrAcceso::create([
-                        'nombre_usuario' => $request['nombre_usuario'],
-                        'nombre_completo' => $request['nombres'] . ' ' . $request['primer_ap_dir'] . ' ' . $request['segundo_ap_dir'],
-                        'password' => bcrypt($request['password']),
-                        'password_plain' => $request['password'],
-                        'tipo_usuario' => $request['tipo_usuario'],
-                        'estado' => $request['estado'],
+                        'nombre_usuario'            => $request['nombre_usuario'],
+                        'nombre_completo'           => $request['nombres'] . ' ' . $request['primer_ap_dir'] . ' ' . $request['segundo_ap_dir'],
+                        'password'                  => bcrypt($request['password']),
+                        'password_plain'            => $request['password'],
+                        'tipo_usuario'              => $request['tipo_usuario'],
+                        'estado'                    => $request['estado'],
                     ]);
 
-                    $permisos = [1, 2];
+                    $permisos = [1, 3]; // 1 = Lectura y 3 = Actualización
                     $privilegios = UsuarioPrivilegio::insert(
                         array_map(function ($permiso_id) use ($usuario) {
                             return [
-                                'usuario_id' => $usuario->id,
-                                'privilegio_id' => $permiso_id,
+                                'usuario_id'        => $usuario->id,
+                                'privilegio_id'     => $permiso_id,
                             ];
                         }, $permisos)
                     );
                     break;
                 case 'ESPECIALISTA':
                     $usuario = BrAcceso::create([
-                        'nombre_usuario' => $request['nombre_usuario'],
-                        'nombre_completo' => $request['nombres'] . ' ' . $request['primer_ap_dir'] . ' ' . $request['segundo_ap_dir'],
-                        'password' => bcrypt($request['password']),
-                        'password_plain' => $request['password'],
-                        'tipo_usuario' => $request['tipo_usuario'],
-                        'estado' => $request['estado'],
+                        'nombre_usuario'            => $request['nombre_usuario'],
+                        'nombre_completo'           => $request['nombres'] . ' ' . $request['primer_ap_dir'] . ' ' . $request['segundo_ap_dir'],
+                        'password'                  => bcrypt($request['password']),
+                        'password_plain'            => $request['password'],
+                        'tipo_usuario'              => $request['tipo_usuario'],
+                        'estado'                    => $request['estado'],
                     ]);
 
                     $directorio = BrDirectorio::create([
-                        'usuario_id' => $usuario->id,
-                        'primer_ap_dir' => $request['primer_ap_dir'],
-                        'segundo_ap_dir' => $request['segundo_ap_dir'],
-                        'nombres' => $request['nombres'],
-                        'telefono' => $request['telefono'],
-                        'email' => $request['email'],
-                        'tipo_asesoria' => $request['tipo_asesoria'],
-                        'estado' => $request['estado'],
+                        'usuario_id'                => $usuario->id,
+                        'primer_ap_dir'             => $request['primer_ap_dir'],
+                        'segundo_ap_dir'            => $request['segundo_ap_dir'],
+                        'nombres'                   => $request['nombres'],
+                        'telefono'                  => $request['telefono'],
+                        'email'                     => $request['email'],
+                        'tipo_asesoria'             => $request['tipo_asesoria'],
+                        'estado'                    => $request['estado'],
                     ]);
 
-                    $permisos = [1, 2];
+                    $permisos = [1, 2]; // 1 = Lectura y 2 = Inserción
                     $privilegios = UsuarioPrivilegio::insert(
                         array_map(function ($permiso_id) use ($usuario) {
                             return [
-                                'usuario_id' => $usuario->id,
-                                'privilegio_id' => $permiso_id,
+                                'usuario_id'        => $usuario->id,
+                                'privilegio_id'     => $permiso_id,
                             ];
                         }, $permisos)
                     );
@@ -141,9 +141,9 @@ class accesoController extends Controller
             return response()->json([
                 'message' => 'Usuario creado exitosamente',
                 'data' => [
-                    'usuario' => isset($usuario) ? $usuario : null,
-                    'directorio' => isset($directorio) ? $directorio : null,
-                    'privilegios' => isset($privilegios) ? $privilegios : null
+                    'usuario'           => isset($usuario) ? $usuario : null,
+                    'directorio'        => isset($directorio) ? $directorio : null,
+                    'privilegios'       => isset($privilegios) ? $privilegios : null
                 ]
             ], 201);
 
@@ -310,6 +310,46 @@ class accesoController extends Controller
         } catch (\Exception $e) {
             DB::rollBack();
             return response()->json(['error' => 'Error al eliminar el usuario', 'message' => $e->getMessage()], 500);
+        }
+    }
+
+    public function exportUsuariosToCSV()
+    {
+        try {
+            $usuarios = BrAcceso::all();
+
+            $csvHeader = ['ID', 'Nombre Completo', 'Nombre de Usuario', 'Clave de Acceso', 'Tipo de Usuario', 'Estado'];
+            $csvData = $usuarios->map(function ($usuario) {
+                return [
+                    $usuario->id,
+                    $usuario->nombre_completo,
+                    $usuario->nombre_usuario,
+                    $usuario->password_plain,
+                    $usuario->tipo_usuario,
+                    $usuario->estado === true ? 'Activo' : 'Inactivo',
+                ];
+            });
+
+            // Crear archivo CSV en memoria
+            $filename = 'usuarios_export_' . date('Ymd_His') . '.csv';
+            $handle = fopen('php://memory', 'w');
+            fputcsv($handle, $csvHeader);
+
+            foreach ($csvData as $row) {
+                fputcsv($handle, $row);
+            }
+
+            rewind($handle);
+            $csvContent = stream_get_contents($handle);
+            fclose($handle);
+
+            // Retornar el archivo CSV como respuesta
+            return response($csvContent)
+                ->header('Content-Type', 'text/csv')
+                ->header('Content-Disposition', "attachment; filename=\"$filename\"");
+
+        } catch (\Exception $e) {
+            return response()->json(['error' => 'Error al exportar usuarios a CSV', 'message' => $e->getMessage()], 500);
         }
     }
 
