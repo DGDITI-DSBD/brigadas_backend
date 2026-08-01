@@ -42,6 +42,8 @@ Route::prefix('v1')->group(function () {
             Route::get('exportar', [ReporteAvanzadoController::class, 'exportar_csv']);
             Route::get('tablero/pdf', [ReporteAvanzadoController::class, 'tablero_pdf']);
             Route::get('chart/pdf', [ReporteAvanzadoController::class, 'chart_pdf']);
+
+            Route::get('reporte -por-mes/pdf', [ReporteAvanzadoController::class, 'reporte_por_mes_pdf']);
         });
 
         // ─── Historial de Brigadas ─────────────────────────────────────────

@@ -257,4 +257,17 @@ class ReporteAvanzadoController extends Controller
             );
         }
     }
+
+
+    public function reporte_por_mes_pdf(Request $request)
+    {
+        try {
+
+        } catch (\Exception $e) {
+            return response()->json(
+                $this->typeResponse($this->respuesta_padre, 'reporte_individual_fail', ['error' => $e->getMessage()]),
+                500
+            );
+        }
+    }
 }
