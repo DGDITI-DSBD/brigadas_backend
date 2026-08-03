@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\BrAsesoria;
 use Illuminate\Http\Request;
 use App\Traits\carpeta_respuestas_t;
 use App\Models\BrDirectorio;
@@ -262,12 +263,118 @@ class ReporteAvanzadoController extends Controller
     public function reporte_por_mes_pdf(Request $request)
     {
         try {
+            // Obtener el año (por defecto el año actual)
+            $year = $request->get('year', date('Y'));
+
+            // Obtener todas las asesorías del año con sus relaciones
+            $asesorias = BrAsesoria::with([
+                'asesoria_canalizacion:id,descripcion'
+            ])
+                ->whereYear('fecha_asesoria', $year)
+                ->where('estado_registro', 1) // Ajusta según tu lógica de negocio
+                ->get();
+
+            // Nombres de meses en español
+            $meses = [
+                1 => 'Enero',
+                2 => 'Febrero',
+                3 => 'Marzo',
+                4 => 'Abril',
+                5 => 'Mayo',
+                6 => 'Junio',
+                7 => 'Julio',
+                8 => 'Agosto',
+                9 => 'Septiembre',
+                10 => 'Octubre',
+                11 => 'Noviembre',
+                12 => 'Diciembre'
+            ];
+
+            // Inicializar estructura de datos
+            $monthlyData = [];
+            $annualSummary = [];
+
+            // Inicializar todos los meses
+            for ($month = 1; $month <= 12; $month++) {
+                $monthlyData[$month] = [
+                    'month' => $meses[$month],
+                    'rows' => [],
+                    'total' => 0
+                ];
+            }
+
+            // Procesar asesorías
+            foreach ($asesorias as $asesoria) {
+                $month = (int) date('m', strtotime($asesoria->fecha_asesoria));
+                $tipoAsesoria = $asesoria->asesoria_canalizacion->descripcion ?? 'Sin clasificar';
+
+                // Inicializar el tipo de asesoría si no existe en el mes
+                if (!isset($monthlyData[$month]['rows'][$tipoAsesoria])) {
+                    $monthlyData[$month]['rows'][$tipoAsesoria] = [
+                        'service' => $tipoAsesoria,
+                        'count' => 0
+                    ];
+                }
+
+                // Incrementar contador mensual
+                $monthlyData[$month]['rows'][$tipoAsesoria]['count']++;
+                $monthlyData[$month]['total']++;
+
+                // Acumular para resumen anual
+                if (!isset($annualSummary[$tipoAsesoria])) {
+                    $annualSummary[$tipoAsesoria] = [
+                        'service' => $tipoAsesoria,
+                        'count' => 0
+                    ];
+                }
+                $annualSummary[$tipoAsesoria]['count']++;
+            }
+
+            // Preparar datos para la respuesta
+            $monthlyTables = [];
+
+            // Convertir a array indexado y filtrar meses sin datos
+            for ($month = 1; $month <= 12; $month++) {
+                if ($monthlyData[$month]['total'] > 0) {
+                    $monthlyData[$month]['rows'] = array_values($monthlyData[$month]['rows']);
+                    $monthlyTables[] = $monthlyData[$month];
+                }
+            }
+
+            // Ordenar resumen anual por cantidad (mayor a menor)
+            $annualSummary = array_values($annualSummary);
+            usort($annualSummary, function ($a, $b) {
+                return $b['count'] - $a['count'];
+            });
+
+            // Calcular total anual
+            $annualTotal = array_sum(array_column($annualSummary, 'count'));
+
+            // Estructurar respuesta final
+            $responseData = [
+                'title' => "Reporte de Asesorías por Mes $year",
+                'year' => (int) $year,
+                'monthlyTables' => $monthlyTables,
+                'annualSummary' => $annualSummary,
+                'annualTotal' => $annualTotal
+            ];
+
+            // Respuesta exitosa
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Reporte por mes generado exitosamente',
+                'data' => $responseData
+            ], 200);
 
         } catch (\Exception $e) {
-            return response()->json(
-                $this->typeResponse($this->respuesta_padre, 'reporte_individual_fail', ['error' => $e->getMessage()]),
-                500
-            );
+            \Log::error('Error en reporte_por_mes_pdf: ' . $e->getMessage());
+
+            // Respuesta de error
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al generar el reporte por mes',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 }

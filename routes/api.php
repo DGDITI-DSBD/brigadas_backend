@@ -43,7 +43,7 @@ Route::prefix('v1')->group(function () {
             Route::get('tablero/pdf', [ReporteAvanzadoController::class, 'tablero_pdf']);
             Route::get('chart/pdf', [ReporteAvanzadoController::class, 'chart_pdf']);
 
-            Route::get('reporte -por-mes/pdf', [ReporteAvanzadoController::class, 'reporte_por_mes_pdf']);
+            Route::get('reporte-por-mes', [ReporteAvanzadoController::class, 'reporte_por_mes_pdf']);
         });
 
         // ─── Historial de Brigadas ─────────────────────────────────────────
