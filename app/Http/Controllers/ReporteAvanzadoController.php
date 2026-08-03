@@ -267,11 +267,13 @@ class ReporteAvanzadoController extends Controller
             $year = $request->get('year', date('Y'));
 
             // Obtener todas las asesorías del año con sus relaciones
+            // SOLO asesorías que TIENEN un tipo de asesoría asignado
             $asesorias = BrAsesoria::with([
                 'asesoria_canalizacion:id,descripcion'
             ])
                 ->whereYear('fecha_asesoria', $year)
-                ->where('estado_registro', 1) // Ajusta según tu lógica de negocio
+                ->where('estado_registro', 1)
+                ->whereNotNull('tipo_asesoria_canaliza_id')
                 ->get();
 
             // Nombres de meses en español
@@ -290,44 +292,60 @@ class ReporteAvanzadoController extends Controller
                 12 => 'Diciembre'
             ];
 
+            // ========== CATÁLOGO DE ESPECIALIDADES EN ORDEN ==========
+            $catalogoEspecialidades = [
+                'MEDICINA GENERAL',
+                'FISIOTERAPIA',
+                'TRABAJO SOCIAL',
+                'GERONTOLOGÍA',
+                'PSICOLÓGICA',
+                'JURÍDICA',
+                'NUTRICIONAL',
+            ];
+
             // Inicializar estructura de datos
             $monthlyData = [];
             $annualSummary = [];
 
-            // Inicializar todos los meses
+            // Inicializar TODAS las especialidades en 0 para el resumen anual
+            foreach ($catalogoEspecialidades as $especialidad) {
+                $annualSummary[$especialidad] = [
+                    'service' => $especialidad,
+                    'count' => 0
+                ];
+            }
+
+            // Inicializar todos los meses con TODAS las especialidades en 0
             for ($month = 1; $month <= 12; $month++) {
                 $monthlyData[$month] = [
                     'month' => $meses[$month],
                     'rows' => [],
                     'total' => 0
                 ];
+
+                // Inicializar cada especialidad en 0 para este mes
+                foreach ($catalogoEspecialidades as $especialidad) {
+                    $monthlyData[$month]['rows'][$especialidad] = [
+                        'service' => $especialidad,
+                        'count' => 0
+                    ];
+                }
             }
 
             // Procesar asesorías
             foreach ($asesorias as $asesoria) {
                 $month = (int) date('m', strtotime($asesoria->fecha_asesoria));
-                $tipoAsesoria = $asesoria->asesoria_canalizacion->descripcion ?? 'Sin clasificar';
+                $tipoAsesoria = $asesoria->asesoria_canalizacion->descripcion;
 
-                // Inicializar el tipo de asesoría si no existe en el mes
-                if (!isset($monthlyData[$month]['rows'][$tipoAsesoria])) {
-                    $monthlyData[$month]['rows'][$tipoAsesoria] = [
-                        'service' => $tipoAsesoria,
-                        'count' => 0
-                    ];
+                // Solo contar si está en el catálogo
+                if (in_array($tipoAsesoria, $catalogoEspecialidades)) {
+                    // Incrementar contador mensual
+                    $monthlyData[$month]['rows'][$tipoAsesoria]['count']++;
+                    $monthlyData[$month]['total']++;
+
+                    // Acumular para resumen anual
+                    $annualSummary[$tipoAsesoria]['count']++;
                 }
-
-                // Incrementar contador mensual
-                $monthlyData[$month]['rows'][$tipoAsesoria]['count']++;
-                $monthlyData[$month]['total']++;
-
-                // Acumular para resumen anual
-                if (!isset($annualSummary[$tipoAsesoria])) {
-                    $annualSummary[$tipoAsesoria] = [
-                        'service' => $tipoAsesoria,
-                        'count' => 0
-                    ];
-                }
-                $annualSummary[$tipoAsesoria]['count']++;
             }
 
             // Preparar datos para la respuesta
@@ -336,16 +354,22 @@ class ReporteAvanzadoController extends Controller
             // Convertir a array indexado y filtrar meses sin datos
             for ($month = 1; $month <= 12; $month++) {
                 if ($monthlyData[$month]['total'] > 0) {
-                    $monthlyData[$month]['rows'] = array_values($monthlyData[$month]['rows']);
+                    // Convertir rows a array indexado manteniendo el orden del catálogo
+                    $orderedRows = [];
+                    foreach ($catalogoEspecialidades as $especialidad) {
+                        $orderedRows[] = $monthlyData[$month]['rows'][$especialidad];
+                    }
+                    $monthlyData[$month]['rows'] = $orderedRows;
                     $monthlyTables[] = $monthlyData[$month];
                 }
             }
 
-            // Ordenar resumen anual por cantidad (mayor a menor)
-            $annualSummary = array_values($annualSummary);
-            usort($annualSummary, function ($a, $b) {
-                return $b['count'] - $a['count'];
-            });
+            // Convertir annualSummary a array indexado manteniendo el orden del catálogo
+            $orderedAnnualSummary = [];
+            foreach ($catalogoEspecialidades as $especialidad) {
+                $orderedAnnualSummary[] = $annualSummary[$especialidad];
+            }
+            $annualSummary = $orderedAnnualSummary;
 
             // Calcular total anual
             $annualTotal = array_sum(array_column($annualSummary, 'count'));

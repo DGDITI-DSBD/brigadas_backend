@@ -25,7 +25,7 @@ class DatabaseSeeder extends Seeder
             BrDirectorioSeeder::class,
             BrPreguntasSeeder::class,
             BrOpcionesSeeder::class,
-            //ReporteEstadisticoSeeder::class,
+            ReporteEstadisticoSeeder::class,
         ]);
     }
 }
