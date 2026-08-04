@@ -413,6 +413,7 @@ class ReporteAvanzadoService
             return [
                 'id'            => $a->id,
                 'fecha'         => $a->fecha_asesoria ? $a->fecha_asesoria->format('Y-m-d') : null,
+                'municipio_id'  => $paciente?->ct_municipio ?? null,
                 'municipio'     => $paciente?->municipio ?? 'Sin municipio',
                 'especialidad'  => $directorio?->tipoAsesoria?->descripcion ?? 'Sin especialidad',
                 'especialista'  => $directorio
