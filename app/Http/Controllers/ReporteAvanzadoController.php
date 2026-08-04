@@ -401,4 +401,37 @@ class ReporteAvanzadoController extends Controller
             ], 500);
         }
     }
+
+    public function reporte_por_municipio_pdf(Request $request)
+    {
+        try {
+            $municipio_id = $request->get('municipio_id');
+            $desde = $request->get('desde');
+            $hasta = $request->get('hasta');
+
+            if (!$municipio_id) {
+                return response()->json(
+                    $this->typeResponse($this->respuesta_padre, 'municipio_requerido', []),
+                    400
+                );
+            }
+
+            if (!$desde || !$hasta) {
+                return response()->json(
+                    $this->typeResponse($this->respuesta_padre, 'fechas_requeridas', []),
+                    400
+                );
+            }
+
+            
+
+
+
+        } catch (\Exception $e) {
+            return response()->json(
+                $this->typeResponse($this->respuesta_padre, 'reporte_individual_fail', ['error' => $e->getMessage()]),
+                500
+            );
+        }
+    }
 }
