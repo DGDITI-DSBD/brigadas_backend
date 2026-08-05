@@ -10,6 +10,7 @@ use App\Services\ReporteAvanzadoService;
 use App\Http\Resources\EspecialistaReporteResource;
 use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\Log;
 
 class ReporteAvanzadoController extends Controller
 {
@@ -405,33 +406,139 @@ class ReporteAvanzadoController extends Controller
     public function reporte_por_municipio_pdf(Request $request)
     {
         try {
-            $municipio_id = $request->get('municipio_id');
+            Log::info('Generando reporte por municipio con parámetros: ', ['Filtros' => $request->all()]);
+
+            $municipio_id = $request->get('municipio');
             $desde = $request->get('desde');
             $hasta = $request->get('hasta');
 
-            if (!$municipio_id) {
-                return response()->json(
-                    $this->typeResponse($this->respuesta_padre, 'municipio_requerido', []),
-                    400
-                );
+            Log::info('Parámetros recibidos - municipio_id: ' . ($municipio_id ?? 'TODOS') . ', desde: ' . ($desde ?? 'NO') . ', hasta: ' . ($hasta ?? 'NO'));
+
+            // ========== VALIDACIONES ==========
+
+            // Caso 4: Sin municipio y sin fechas → Error
+            if (!$municipio_id && !$desde && !$hasta) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Debe seleccionar al menos un municipio o un rango de fechas',
+                    'data' => []
+                ], 400);
             }
 
-            if (!$desde || !$hasta) {
-                return response()->json(
-                    $this->typeResponse($this->respuesta_padre, 'fechas_requeridas', []),
-                    400
-                );
+            // Si hay fechas, validar que desde <= hasta
+            if ($desde && $hasta) {
+                if ($desde > $hasta) {
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'La fecha "desde" no puede ser mayor que la fecha "hasta"',
+                        'data' => []
+                    ], 400);
+                }
             }
 
-            
+            // ========== CONSTRUIR QUERY BASE ==========
 
+            // Usamos la relación con directorio para obtener la especialidad del profesionista
+            $query = BrAsesoria::with([
+                'paciente:id,ct_municipio,municipio',
+                'directorio.tipoAsesoria:id,descripcion'  
+            ])
+                ->where('estado_registro', true)                    // Solo asesorías activas
+                // ->whereNotNull('tipo_asesoria_canaliza_id')      // Solo asesorías con tipo de asesoría asignado
+                // ->whereHas('directorio')                         // Asegurar que existe el directorio
+                // ->whereHas('directorio.tipoAsesoria')            // Asegurar que existe el tipo de asesoría
+            ;
+            // ========== APLICAR FILTROS ==========
 
+            // Filtro por municipio
+            if ($municipio_id) {
+                $query->whereHas('paciente', function ($q) use ($municipio_id) {
+                    $q->where('ct_municipio', $municipio_id);
+                });
+            }
+
+            // Filtro por rango de fechas (solo lunes a viernes) - Se comento la restricción de días de la semana para incluir todos los días
+            if ($desde && $hasta) {
+                $query->whereBetween('fecha_asesoria', [$desde, $hasta])
+                    // ->whereRaw("EXTRACT(DOW FROM fecha_asesoria) NOT IN (0, 6)")
+                    ;
+            } elseif ($desde && !$hasta) {
+                $query->where('fecha_asesoria', '>=', $desde)
+                    // ->whereRaw("EXTRACT(DOW FROM fecha_asesoria) NOT IN (0, 6)")
+                    ;
+            } elseif (!$desde && $hasta) {
+                $query->where('fecha_asesoria', '<=', $hasta)
+                    // ->whereRaw("EXTRACT(DOW FROM fecha_asesoria) NOT IN (0, 6)")
+                    ;
+            } elseif ($municipio_id && !$desde && !$hasta) {
+                // Caso 3: Solo municipio → año actual
+                $year = date('Y');
+                $query->whereYear('fecha_asesoria', $year);
+                Log::info('Caso 3: Solo municipio - filtrando por año actual: ' . $year);
+            }
+
+            // ========== OBTENER RESULTADOS ==========
+            $asesorias = $query->orderBy('fecha_asesoria')->get();
+
+            Log::info('Asesorías encontradas: ' . $asesorias->count());
+
+            // ========== PROCESAR DATOS ==========
+            $rows = [];
+            $total = 0;
+
+            foreach ($asesorias as $asesoria) {
+                $municipioNombre = $asesoria->paciente->municipio ?? 'SIN MUNICIPIO';
+                $fecha = $asesoria->fecha_asesoria;
+                // Obtener especialidad del directorio (profesionista que atendió)
+                $especialidad = $asesoria->directorio->tipoAsesoria->descripcion ?? 'SIN ESPECIALIDAD';
+
+                $key = $municipioNombre . '||' . $fecha . '||' . $especialidad;
+
+                if (!isset($rows[$key])) {
+                    $rows[$key] = [
+                        'municipio' => $municipioNombre,
+                        'fecha' => $fecha,
+                        'especialidad' => $especialidad,
+                        'cantidad' => 0,
+                    ];
+                }
+
+                $rows[$key]['cantidad']++;
+                $total++;
+            }
+
+            $rows = array_values($rows);
+
+            // ========== ESTRUCTURAR RESPUESTA ==========
+            $municipioLabel = $municipio_id
+                ? ($asesorias->first()?->paciente->municipio ?? 'Municipio ' . $municipio_id)
+                : 'Todos';
+
+            $responseData = [
+                'title' => 'Reporte de Asesorías por Municipio',
+                'filtros' => [
+                    'municipio' => $municipioLabel,
+                    'desde' => $desde,
+                    'hasta' => $hasta,
+                ],
+                'rows' => $rows,
+                'total' => $total,
+            ];
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Reporte por municipio generado exitosamente',
+                'data' => $responseData
+            ], 200);
 
         } catch (\Exception $e) {
-            return response()->json(
-                $this->typeResponse($this->respuesta_padre, 'reporte_individual_fail', ['error' => $e->getMessage()]),
-                500
-            );
+            Log::error('Error en reporte_por_municipio_pdf: ' . $e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al generar el reporte por municipio',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 }
