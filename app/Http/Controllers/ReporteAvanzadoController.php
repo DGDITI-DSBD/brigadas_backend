@@ -541,4 +541,26 @@ class ReporteAvanzadoController extends Controller
             ], 500);
         }
     }
+
+    public function reporte_general_excel(Request $request)
+    {
+        try {
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Reporte general generado exitosamente',
+                // 'data' => $reporte
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error en reporte_general_excel: ' . $e->getMessage());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al generar el reporte general',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+
+    }
 }
