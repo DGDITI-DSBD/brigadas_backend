@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BrAsesoria;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Traits\carpeta_respuestas_t;
 use App\Models\BrDirectorio;
@@ -11,6 +12,12 @@ use App\Http\Resources\EspecialistaReporteResource;
 use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
+use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Style\Alignment;
+use PhpOffice\PhpSpreadsheet\Style\Border;
+use PhpOffice\PhpSpreadsheet\Style\Color;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ReporteAvanzadoController extends Controller
 {
@@ -542,18 +549,283 @@ class ReporteAvanzadoController extends Controller
         }
     }
 
+    // ─── Lista fija de las 7 especialidades ───────────────────────────
+    
+    private $especialidadesTodas = [
+        'MEDICINA GENERAL',
+        'FISIOTERAPIA',
+        'TRABAJO SOCIAL',
+        'GERONTOLOGÍA',
+        'PSICOLÓGICA',
+        'JURÍDICA',
+        'NUTRICIONAL'
+    ];
+
+
     public function reporte_general_excel(Request $request)
     {
         try {
+            // ─── Parámetros de filtro opcionales ───────────────────────
+            $desde = $request->input('desde');
+            $hasta = $request->input('hasta');
 
-            return response()->json([
-                'status' => 'success',
-                'message' => 'Reporte general generado exitosamente',
-                // 'data' => $reporte
-            ], 200);
+            // ─── Consulta base ─────────────────────────────────────────
+            $query = BrAsesoria::query()
+                ->join('br_pacientes', 'br_asesorias.paciente_id', '=', 'br_pacientes.id')
+                ->join('br_cat_tipo_asesoria', 'br_asesorias.tipo_asesoria_canaliza_id', '=', 'br_cat_tipo_asesoria.id')
+                ->where('br_asesorias.estado_registro', true)
+                ->select(
+                    'br_pacientes.municipio',
+                    'br_cat_tipo_asesoria.descripcion as especialidad',
+                    'br_asesorias.fecha_asesoria'
+                );
+
+            if ($desde) {
+                $query->whereDate('br_asesorias.fecha_asesoria', '>=', $desde);
+            }
+            if ($hasta) {
+                $query->whereDate('br_asesorias.fecha_asesoria', '<=', $hasta);
+            }
+
+            $asesorias = $query->orderBy('br_asesorias.fecha_asesoria')->get();
+
+            // ─── Agrupar datos: [mesKey][municipio][especialidad] = ['dias' => [], 'cantidad' => int]
+            $agrupado = [];
+            $totalGeneral = 0;
+
+            foreach ($asesorias as $asesoria) {
+                $fecha = Carbon::parse($asesoria->fecha_asesoria);
+                $mesKey = $fecha->format('Y-m');
+                $dia = (int) $fecha->format('d');
+                $municipio = $asesoria->municipio;
+                $especialidad = $asesoria->especialidad;
+
+                if (!isset($agrupado[$mesKey])) {
+                    $agrupado[$mesKey] = [
+                        'nombre_mes' => $this->getMesNombre($fecha->month),
+                        'municipios' => []
+                    ];
+                }
+
+                if (!isset($agrupado[$mesKey]['municipios'][$municipio])) {
+                    $agrupado[$mesKey]['municipios'][$municipio] = [];
+                }
+
+                if (!isset($agrupado[$mesKey]['municipios'][$municipio][$especialidad])) {
+                    $agrupado[$mesKey]['municipios'][$municipio][$especialidad] = [
+                        'dias' => [],
+                        'cantidad' => 0
+                    ];
+                }
+
+                // Acumular días únicos POR ESPECIALIDAD
+                if (!in_array($dia, $agrupado[$mesKey]['municipios'][$municipio][$especialidad]['dias'])) {
+                    $agrupado[$mesKey]['municipios'][$municipio][$especialidad]['dias'][] = $dia;
+                }
+
+                $agrupado[$mesKey]['municipios'][$municipio][$especialidad]['cantidad']++;
+                $totalGeneral++;
+            }
+
+            // ─── Ordenar días en cada especialidad ─────────────────────
+            foreach ($agrupado as &$mesData) {
+                foreach ($mesData['municipios'] as &$munData) {
+                    foreach ($munData as &$espData) {
+                        sort($espData['dias']);
+                    }
+                }
+            }
+            unset($mesData, $munData, $espData);
+
+            // ─── Crear Spreadsheet ─────────────────────────────────────
+            $spreadsheet = new Spreadsheet();
+            $sheet = $spreadsheet->getActiveSheet();
+
+            // ─── Estilos ───────────────────────────────────────────────
+            $headerStyle = [
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '6F1111']],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+            ];
+
+            $dataStyle = [
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+                'alignment' => ['vertical' => Alignment::VERTICAL_CENTER]
+            ];
+
+            $zeroStyle = [
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+                'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
+                'font' => ['color' => ['rgb' => '999999']]
+            ];
+
+            $indicadorStyle = [
+                'font' => ['bold' => true, 'size' => 12],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER]
+            ];
+
+            // ─── Escribir encabezados ──────────────────────────────────
+            $row = 1;
+            $headers = ['MUNICIPIO', 'ASESORÍA', 'DIAS', 'CANTIDAD', 'PORCENTAJE', 'TOTAL', 'MES'];
+            $col = 'A';
+            foreach ($headers as $header) {
+                $sheet->setCellValue($col . $row, $header);
+                $sheet->getStyle($col . $row)->applyFromArray($headerStyle);
+                $col++;
+            }
+            $row++;
+
+            // ─── Escribir datos ────────────────────────────────────────
+            $META_FIJA = 50000;
+            $avanceTotal = 0;
+
+            ksort($agrupado);
+
+            foreach ($agrupado as $mesKey => $mesData) {
+                $municipios = $mesData['municipios'];
+                ksort($municipios);
+
+                // Calcular total del mes
+                $totalMes = 0;
+                foreach ($municipios as $munData) {
+                    foreach ($munData as $espData) {
+                        $totalMes += $espData['cantidad'];
+                    }
+                }
+
+                foreach ($municipios as $nombreMunicipio => $munData) {
+                    // Calcular total del municipio
+                    $totalMunicipio = 0;
+                    foreach ($munData as $espData) {
+                        $totalMunicipio += $espData['cantidad'];
+                    }
+
+                    $primeraFilaMunicipio = true;
+
+                    // ─── MOSTRAR SIEMPRE LAS 7 ESPECIALIDADES ─────────
+                    foreach ($this->especialidadesTodas as $nombreEspecialidad) {
+                        if (isset($munData[$nombreEspecialidad])) {
+                            // Especialidad con datos
+                            $espData = $munData[$nombreEspecialidad];
+                            $diasStr = implode(',', $espData['dias']);
+                            $cantidad = $espData['cantidad'];
+                            $porcentaje = $totalMunicipio > 0 ? round(($cantidad / $totalMunicipio) * 100, 1) : 0;
+                            $tieneDatos = true;
+                        } else {
+                            // Especialidad sin datos (días vacíos, 0, 0%)
+                            $diasStr = '';
+                            $cantidad = 0;
+                            $porcentaje = 0;
+                            $tieneDatos = false;
+                        }
+
+                        // MUNICIPIO (solo primera fila)
+                        $sheet->setCellValue('A' . $row, $primeraFilaMunicipio ? $nombreMunicipio : '');
+
+                        // ASESORÍA
+                        $sheet->setCellValue('B' . $row, $nombreEspecialidad);
+
+                        // DIAS
+                        $sheet->setCellValue('C' . $row, $diasStr);
+
+                        // CANTIDAD
+                        $sheet->setCellValue('D' . $row, $cantidad);
+
+                        // PORCENTAJE
+                        $sheet->setCellValue('E' . $row, $porcentaje . '%');
+
+                        // TOTAL (solo primera fila del municipio)
+                        $sheet->setCellValue('F' . $row, $primeraFilaMunicipio ? $totalMes : '');
+
+                        // MES (solo primera fila del municipio)
+                        $sheet->setCellValue('G' . $row, $primeraFilaMunicipio ? $mesData['nombre_mes'] : '');
+
+                        // Aplicar estilo según tenga datos o no
+                        $estilo = $tieneDatos ? $dataStyle : $zeroStyle;
+                        foreach (range('A', 'G') as $col) {
+                            $sheet->getStyle($col . $row)->applyFromArray($estilo);
+                            $sheet->getStyle($col . $row)->getAlignment()->setHorizontal(
+                                in_array($col, ['D', 'E', 'F']) ? Alignment::HORIZONTAL_CENTER : Alignment::HORIZONTAL_LEFT
+                            );
+                        }
+
+                        $primeraFilaMunicipio = false;
+                        $row++;
+                    }
+                }
+            }
+
+            // ─── Indicadores finales ───────────────────────────────────
+            $avanceTotal = $totalGeneral;
+            $faltante = $META_FIJA - $avanceTotal;
+            $porcentajeAvance = $META_FIJA > 0 ? round(($avanceTotal / $META_FIJA) * 100, 1) : 0;
+            $porcentajeFaltante = $META_FIJA > 0 ? round(($faltante / $META_FIJA) * 100, 1) : 0;
+
+            // Fila vacía separadora
+            $row++;
+            $sheet->mergeCells("A{$row}:G{$row}");
+            $row++;
+
+            // Meta
+            $sheet->setCellValue('A' . $row, 'Meta');
+            $sheet->mergeCells("A{$row}:C{$row}");
+            $sheet->setCellValue('D' . $row, number_format($META_FIJA));
+            $sheet->setCellValue('E' . $row, '100%');
+            $sheet->mergeCells("F{$row}:G{$row}");
+            $sheet->getStyle("A{$row}:G{$row}")->applyFromArray($indicadorStyle);
+            $sheet->getStyle("A{$row}:G{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
+                ->setStartColor(new Color('E8F5E9'));
+            $row++;
+
+            // Avance
+            $sheet->setCellValue('A' . $row, 'Avance');
+            $sheet->mergeCells("A{$row}:C{$row}");
+            $sheet->setCellValue('D' . $row, number_format($avanceTotal));
+            $sheet->setCellValue('E' . $row, $porcentajeAvance . '%');
+            $sheet->mergeCells("F{$row}:G{$row}");
+            $sheet->getStyle("A{$row}:G{$row}")->applyFromArray($indicadorStyle);
+            $sheet->getStyle("A{$row}:G{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
+                ->setStartColor(new Color('FFF3E0'));
+            $row++;
+
+            // Falta
+            $sheet->setCellValue('A' . $row, 'Falta');
+            $sheet->mergeCells("A{$row}:C{$row}");
+            $sheet->setCellValue('D' . $row, number_format($faltante));
+            $sheet->setCellValue('E' . $row, $porcentajeFaltante . '%');
+            $sheet->mergeCells("F{$row}:G{$row}");
+            $sheet->getStyle("A{$row}:G{$row}")->applyFromArray($indicadorStyle);
+            $sheet->getStyle("A{$row}:G{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
+                ->setStartColor(new Color('FFEBEE'));
+
+            // ─── Ajustar ancho de columnas ─────────────────────────────
+            $sheet->getColumnDimension('A')->setWidth(25);
+            $sheet->getColumnDimension('B')->setWidth(22);
+            $sheet->getColumnDimension('C')->setWidth(25);
+            $sheet->getColumnDimension('D')->setWidth(12);
+            $sheet->getColumnDimension('E')->setWidth(14);
+            $sheet->getColumnDimension('F')->setWidth(12);
+            $sheet->getColumnDimension('G')->setWidth(15);
+
+            // ─── Generar archivo para descarga ─────────────────────────
+            $writer = new Xlsx($spreadsheet);
+            $filename = 'reporte_general_' . now()->format('Y-m-d_His') . '.xlsx';
+
+            $tempPath = storage_path('app/temp/' . $filename);
+            if (!file_exists(dirname($tempPath))) {
+                mkdir(dirname($tempPath), 0755, true);
+            }
+            $writer->save($tempPath);
+
+            return response()->download($tempPath, $filename, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ])->deleteFileAfterSend(true);
 
         } catch (\Exception $e) {
             Log::error('Error en reporte_general_excel: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
 
             return response()->json([
                 'status' => 'error',
@@ -561,6 +833,25 @@ class ReporteAvanzadoController extends Controller
                 'error' => $e->getMessage()
             ], 500);
         }
+    }
 
+    // ─── Helper para nombre de mes en español ─────────────────────────
+    private function getMesNombre($mes)
+    {
+        $meses = [
+            1 => 'ENERO',
+            2 => 'FEBRERO',
+            3 => 'MARZO',
+            4 => 'ABRIL',
+            5 => 'MAYO',
+            6 => 'JUNIO',
+            7 => 'JULIO',
+            8 => 'AGOSTO',
+            9 => 'SEPTIEMBRE',
+            10 => 'OCTUBRE',
+            11 => 'NOVIEMBRE',
+            12 => 'DICIEMBRE',
+        ];
+        return $meses[$mes] ?? '';
     }
 }
