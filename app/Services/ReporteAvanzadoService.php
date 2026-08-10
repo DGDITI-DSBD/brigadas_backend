@@ -416,6 +416,7 @@ class ReporteAvanzadoService
                 'municipio_id'  => $paciente?->ct_municipio ?? null,
                 'municipio'     => $paciente?->municipio ?? 'Sin municipio',
                 'especialidad'  => $directorio?->tipoAsesoria?->descripcion ?? 'Sin especialidad',
+                'especialidad_id' => $directorio?->tipoAsesoria?->id ?? 0,
                 'especialista'  => $directorio
                     ? trim($directorio->primer_ap_dir . ' ' . $directorio->segundo_ap_dir . ' ' . $directorio->nombres)
                     : 'Sin especialista',
