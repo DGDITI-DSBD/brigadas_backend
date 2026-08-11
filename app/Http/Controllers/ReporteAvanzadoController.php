@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\BrAsesoria;
+use App\Models\CatMunicipio;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Traits\carpeta_respuestas_t;
@@ -898,14 +899,16 @@ class ReporteAvanzadoController extends Controller
         return $meses[$mes] ?? '';
     }
 
-    // CONSULTA PARA OBTENER EL TOTAL DE LAS ASESORIAS REALIZADAS POR EL ESPECIALISTA POR DIA
+    // CONSULTA PARA OBTENER EL REPORTE DE SERVICIOS INTEGRALES POR ESPECIALISTA
     public function reporte_servicios_integrales_pdf(Request $request)
     {
         try {
             $directorio_id = $request->get('directorio_id');
-            $desde         = $request->get('desde');
-            $hasta         = $request->get('hasta');
+            $municipio_id = $request->get('municipio_id');
+            $desde = $request->get('desde');
+            $hasta = $request->get('hasta');
 
+            // Validaciones
             if (!$directorio_id) {
                 return response()->json([
                     'status' => 'error',
@@ -914,23 +917,100 @@ class ReporteAvanzadoController extends Controller
                 ], 400);
             }
 
-            $totalAsesorias = BrAsesoria::where('directorio_id', $directorio_id)
+            if (!$municipio_id) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'El parámetro "municipio_id" es obligatorio.',
+                    'data' => []
+                ], 400);
+            }
+
+            if ($desde && $hasta && $desde > $hasta) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'La fecha "desde" no puede ser mayor que la fecha "hasta".',
+                    'data' => []
+                ], 400);
+            }
+
+            // Obtener datos del especialista
+            $directorio = BrDirectorio::with('tipoAsesoria')
+                ->find($directorio_id);
+
+            if (!$directorio) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'Especialista no encontrado.',
+                    'data' => []
+                ], 404);
+            }
+
+            // Nombre completo del especialista
+            $nombreEspecialista = trim(
+                $directorio->primer_ap_dir . ' ' .
+                $directorio->segundo_ap_dir . ' ' .
+                $directorio->nombres
+            );
+
+            // Especialidad
+            $especialidad = $directorio->tipoAsesoria->descripcion ?? 'SIN ESPECIALIDAD';
+
+            // Obtener municipio (CORREGIDO: se pasa $municipio_id con use)
+            $municipio = CatMunicipio::where('ct_municipio', $municipio_id)
+                ->where('ct_entidad_federativa', function ($query) use ($municipio_id) {
+                    $query->select('ct_entidad_federativa')
+                        ->from('br_pacientes')
+                        ->where('ct_municipio', $municipio_id)
+                        ->limit(1);
+                })
+                ->first();
+
+            $nombreMunicipio = $municipio->municipio ?? 'SIN MUNICIPIO';
+
+            // Obtener asesorías agrupadas por fecha
+            $asesorias = BrAsesoria::where('asesor_atendio_id', $directorio_id)
                 ->where('estado_registro', true)
+                ->whereHas('paciente', function ($q) use ($municipio_id) {
+                    $q->where('ct_municipio', $municipio_id);
+                })
                 ->when($desde, function ($query) use ($desde) {
                     return $query->whereDate('fecha_asesoria', '>=', $desde);
                 })
                 ->when($hasta, function ($query) use ($hasta) {
                     return $query->whereDate('fecha_asesoria', '<=', $hasta);
                 })
-                ->count();
+                ->selectRaw('DATE(fecha_asesoria) as fecha, COUNT(*) as cantidad')
+                ->groupBy('fecha')
+                ->orderBy('fecha')
+                ->get();
+
+            // Formatear fechas a DD/MM/YYYY y calcular total
+            $filasReporte = [];
+            $totalAsesorias = 0;
+
+            foreach ($asesorias as $asesoria) {
+                $cantidad = (int) $asesoria->cantidad;
+                $filasReporte[] = [
+                    'fecha' => Carbon::parse($asesoria->fecha)->format('d/m/Y'),
+                    'asesorias' => $cantidad,
+                ];
+                $totalAsesorias += $cantidad;
+            }
+
+            // Estructurar respuesta
+            $responseData = [
+                'nombre' => $nombreEspecialista,
+                'especialidad' => $especialidad,
+                'municipio' => $nombreMunicipio,
+                'anio' => $desde ? Carbon::parse($desde)->year : date('Y'),
+                'filasReporte' => $filasReporte,
+                'totalAsesorias' => $totalAsesorias,
+            ];
 
             return response()->json([
                 'status' => 'success',
-                'message' => 'Total de asesorías obtenidas exitosamente.',
-                'data' => [
-                    'directorio_id' => $directorio_id,
-                    'total_asesorias' => $totalAsesorias
-                ]
+                'message' => 'Reporte de servicios integrales generado exitosamente.',
+                'data' => $responseData
             ], 200);
 
         } catch (\Exception $e) {
