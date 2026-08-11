@@ -46,7 +46,7 @@ Route::prefix('v1')->group(function () {
             Route::get('reporte-por-mes', [ReporteAvanzadoController::class, 'reporte_por_mes_pdf']);
             Route::get('reporte-por-municipio', [ReporteAvanzadoController::class, 'reporte_por_municipio_pdf']);
             Route::get('reporte-general', [ReporteAvanzadoController::class, 'reporte_general_excel']);
-
+            Route::get('reporte-especialista', [ReporteAvanzadoController::class, 'reporte_servicios_integrales_pdf']);
         });
 
         // ─── Historial de Brigadas ─────────────────────────────────────────

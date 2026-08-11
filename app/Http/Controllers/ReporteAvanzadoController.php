@@ -267,7 +267,7 @@ class ReporteAvanzadoController extends Controller
         }
     }
 
-
+    // Reporte por mes en PDF (con todas las especialidades y meses)
     public function reporte_por_mes_pdf(Request $request)
     {
         try {
@@ -410,6 +410,7 @@ class ReporteAvanzadoController extends Controller
         }
     }
 
+    // Reporte por municipio en PDF (con todas las especialidades y días únicos)
     public function reporte_por_municipio_pdf(Request $request)
     {
         try {
@@ -549,8 +550,7 @@ class ReporteAvanzadoController extends Controller
         }
     }
 
-    // ─── Lista fija de las 7 especialidades ───────────────────────────
-    
+    // Lista fija de las 7 especialidades
     private $especialidadesTodas = [
         'MEDICINA GENERAL',
         'FISIOTERAPIA',
@@ -561,7 +561,7 @@ class ReporteAvanzadoController extends Controller
         'NUTRICIONAL'
     ];
 
-
+    // Reporte General en Excel (con todas las especialidades y días únicos)
     public function reporte_general_excel(Request $request)
     {
         try {
@@ -657,10 +657,11 @@ class ReporteAvanzadoController extends Controller
             $zeroStyle = [
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
                 'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
-                'font' => ['color' => ['rgb' => '999999']]
+                'font' => ['color' => ['rgb' => '999999']],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => 'F5F5F5']]
             ];
 
-            $indicadorStyle = [
+            $indicadorStyleSimple = [
                 'font' => ['bold' => true, 'size' => 12],
                 'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]],
                 'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER]
@@ -687,7 +688,7 @@ class ReporteAvanzadoController extends Controller
                 $municipios = $mesData['municipios'];
                 ksort($municipios);
 
-                // Calcular total del mes
+                // Calcular total del mes (suma de TODOS los municipios)
                 $totalMes = 0;
                 foreach ($municipios as $munData) {
                     foreach ($munData as $espData) {
@@ -695,14 +696,18 @@ class ReporteAvanzadoController extends Controller
                     }
                 }
 
+                // ─── Guardar la fila inicial del MES y TOTAL ──────────
+                $filaInicialMes = $row;
+
                 foreach ($municipios as $nombreMunicipio => $munData) {
-                    // Calcular total del municipio
+                    // Calcular total del municipio (para porcentajes)
                     $totalMunicipio = 0;
                     foreach ($munData as $espData) {
                         $totalMunicipio += $espData['cantidad'];
                     }
 
-                    $primeraFilaMunicipio = true;
+                    // Guardar la fila inicial de este municipio para merge de MUNICIPIO
+                    $filaInicialMunicipio = $row;
 
                     // ─── MOSTRAR SIEMPRE LAS 7 ESPECIALIDADES ─────────
                     foreach ($this->especialidadesTodas as $nombreEspecialidad) {
@@ -721,47 +726,91 @@ class ReporteAvanzadoController extends Controller
                             $tieneDatos = false;
                         }
 
-                        // MUNICIPIO (solo primera fila)
-                        $sheet->setCellValue('A' . $row, $primeraFilaMunicipio ? $nombreMunicipio : '');
-
+                        // ─── ESCRIBIR VALORES ──────────────────────────
                         // ASESORÍA
                         $sheet->setCellValue('B' . $row, $nombreEspecialidad);
-
                         // DIAS
                         $sheet->setCellValue('C' . $row, $diasStr);
-
                         // CANTIDAD
                         $sheet->setCellValue('D' . $row, $cantidad);
-
                         // PORCENTAJE
                         $sheet->setCellValue('E' . $row, $porcentaje . '%');
 
-                        // TOTAL (solo primera fila del municipio)
-                        $sheet->setCellValue('F' . $row, $primeraFilaMunicipio ? $totalMes : '');
-
-                        // MES (solo primera fila del municipio)
-                        $sheet->setCellValue('G' . $row, $primeraFilaMunicipio ? $mesData['nombre_mes'] : '');
-
-                        // Aplicar estilo según tenga datos o no
-                        $estilo = $tieneDatos ? $dataStyle : $zeroStyle;
-                        foreach (range('A', 'G') as $col) {
-                            $sheet->getStyle($col . $row)->applyFromArray($estilo);
-                            $sheet->getStyle($col . $row)->getAlignment()->setHorizontal(
-                                in_array($col, ['D', 'E', 'F']) ? Alignment::HORIZONTAL_CENTER : Alignment::HORIZONTAL_LEFT
-                            );
+                        // ─── APLICAR ESTILOS ───────────────────────────
+                        if ($tieneDatos) {
+                            // ── Especialidad CON datos: estilo normal ──
+                            foreach (range('A', 'G') as $col) {
+                                $sheet->getStyle($col . $row)->applyFromArray($dataStyle);
+                                $sheet->getStyle($col . $row)->getAlignment()->setHorizontal(
+                                    in_array($col, ['D', 'E', 'F']) ? Alignment::HORIZONTAL_CENTER : Alignment::HORIZONTAL_LEFT
+                                );
+                            }
+                            // CANTIDAD y PORCENTAJE centrados
+                            $sheet->getStyle('D' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                            $sheet->getStyle('E' . $row)->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                        } else {
+                            // ── Especialidad SIN datos: GRIS en B, D, E ──
+                            // Columnas normales (A, C, F, G) con dataStyle
+                            foreach (['A', 'C', 'F', 'G'] as $col) {
+                                $sheet->getStyle($col . $row)->applyFromArray($dataStyle);
+                                $sheet->getStyle($col . $row)->getAlignment()->setHorizontal(
+                                    in_array($col, ['F']) ? Alignment::HORIZONTAL_CENTER : Alignment::HORIZONTAL_LEFT
+                                );
+                            }
+                            // Columnas en GRIS con fondo gris claro (B, D, E)
+                            foreach (['B', 'D', 'E'] as $col) {
+                                $sheet->getStyle($col . $row)->applyFromArray($zeroStyle);
+                                $sheet->getStyle($col . $row)->getAlignment()->setHorizontal(
+                                    in_array($col, ['D', 'E']) ? Alignment::HORIZONTAL_CENTER : Alignment::HORIZONTAL_LEFT
+                                );
+                            }
                         }
 
-                        $primeraFilaMunicipio = false;
+                        // ─── DIAS siempre en negrita ──────────────────
+                        $sheet->getStyle('C' . $row)->getFont()->setBold(true);
+
                         $row++;
                     }
+
+                    // ─── MERGE MUNICIPIO (7 filas) ────────────────────
+                    $filaFinalMunicipio = $row - 1;
+                    if ($filaInicialMunicipio < $filaFinalMunicipio) {
+                        $sheet->mergeCells("A{$filaInicialMunicipio}:A{$filaFinalMunicipio}");
+                    }
+                    $sheet->setCellValue('A' . $filaInicialMunicipio, $nombreMunicipio);
+                    $sheet->getStyle('A' . $filaInicialMunicipio)->getAlignment()
+                        ->setVertical(Alignment::VERTICAL_CENTER)
+                        ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                    $sheet->getStyle('A' . $filaInicialMunicipio)->getFont()->setBold(true);
                 }
+
+                // ─── MERGE TOTAL (TODOS los municipios del mes) ───────
+                $filaFinalMes = $row - 1;
+                if ($filaInicialMes < $filaFinalMes) {
+                    $sheet->mergeCells("F{$filaInicialMes}:F{$filaFinalMes}");
+                }
+                $sheet->setCellValue('F' . $filaInicialMes, $totalMes);
+                $sheet->getStyle('F' . $filaInicialMes)->getAlignment()
+                    ->setVertical(Alignment::VERTICAL_CENTER)
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('F' . $filaInicialMes)->getFont()->setBold(true);
+                $sheet->getStyle('F' . $filaInicialMes)->getFont()->setSize(14);
+
+                // ─── MERGE MES (TODOS los municipios del mes) ──────────
+                if ($filaInicialMes < $filaFinalMes) {
+                    $sheet->mergeCells("G{$filaInicialMes}:G{$filaFinalMes}");
+                }
+                $sheet->setCellValue('G' . $filaInicialMes, $mesData['nombre_mes']);
+                $sheet->getStyle('G' . $filaInicialMes)->getAlignment()
+                    ->setVertical(Alignment::VERTICAL_CENTER)
+                    ->setHorizontal(Alignment::HORIZONTAL_CENTER);
+                $sheet->getStyle('G' . $filaInicialMes)->getFont()->setBold(true);
+                $sheet->getStyle('G' . $filaInicialMes)->getFont()->setSize(14);
             }
 
-            // ─── Indicadores finales ───────────────────────────────────
+            // ─── Indicadores finales (SIN columna de porcentaje) ──────────
             $avanceTotal = $totalGeneral;
             $faltante = $META_FIJA - $avanceTotal;
-            $porcentajeAvance = $META_FIJA > 0 ? round(($avanceTotal / $META_FIJA) * 100, 1) : 0;
-            $porcentajeFaltante = $META_FIJA > 0 ? round(($faltante / $META_FIJA) * 100, 1) : 0;
 
             // Fila vacía separadora
             $row++;
@@ -770,34 +819,28 @@ class ReporteAvanzadoController extends Controller
 
             // Meta
             $sheet->setCellValue('A' . $row, 'Meta');
-            $sheet->mergeCells("A{$row}:C{$row}");
-            $sheet->setCellValue('D' . $row, number_format($META_FIJA));
-            $sheet->setCellValue('E' . $row, '100%');
-            $sheet->mergeCells("F{$row}:G{$row}");
-            $sheet->getStyle("A{$row}:G{$row}")->applyFromArray($indicadorStyle);
-            $sheet->getStyle("A{$row}:G{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
+            $sheet->setCellValue('B' . $row, number_format($META_FIJA));
+            $sheet->mergeCells("C{$row}:G{$row}");
+            $sheet->getStyle("A{$row}:B{$row}")->applyFromArray($indicadorStyleSimple);
+            $sheet->getStyle("A{$row}:B{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
                 ->setStartColor(new Color('E8F5E9'));
             $row++;
 
             // Avance
             $sheet->setCellValue('A' . $row, 'Avance');
-            $sheet->mergeCells("A{$row}:C{$row}");
-            $sheet->setCellValue('D' . $row, number_format($avanceTotal));
-            $sheet->setCellValue('E' . $row, $porcentajeAvance . '%');
-            $sheet->mergeCells("F{$row}:G{$row}");
-            $sheet->getStyle("A{$row}:G{$row}")->applyFromArray($indicadorStyle);
-            $sheet->getStyle("A{$row}:G{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
+            $sheet->setCellValue('B' . $row, number_format($avanceTotal));
+            $sheet->mergeCells("C{$row}:G{$row}");
+            $sheet->getStyle("A{$row}:B{$row}")->applyFromArray($indicadorStyleSimple);
+            $sheet->getStyle("A{$row}:B{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
                 ->setStartColor(new Color('FFF3E0'));
             $row++;
 
             // Falta
             $sheet->setCellValue('A' . $row, 'Falta');
-            $sheet->mergeCells("A{$row}:C{$row}");
-            $sheet->setCellValue('D' . $row, number_format($faltante));
-            $sheet->setCellValue('E' . $row, $porcentajeFaltante . '%');
-            $sheet->mergeCells("F{$row}:G{$row}");
-            $sheet->getStyle("A{$row}:G{$row}")->applyFromArray($indicadorStyle);
-            $sheet->getStyle("A{$row}:G{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
+            $sheet->setCellValue('B' . $row, number_format($faltante));
+            $sheet->mergeCells("C{$row}:G{$row}");
+            $sheet->getStyle("A{$row}:B{$row}")->applyFromArray($indicadorStyleSimple);
+            $sheet->getStyle("A{$row}:B{$row}")->getFill()->setFillType(Fill::FILL_SOLID)
                 ->setStartColor(new Color('FFEBEE'));
 
             // ─── Ajustar ancho de columnas ─────────────────────────────
@@ -835,7 +878,7 @@ class ReporteAvanzadoController extends Controller
         }
     }
 
-    // ─── Helper para nombre de mes en español ─────────────────────────
+    //Lista de los Meses
     private function getMesNombre($mes)
     {
         $meses = [
@@ -854,4 +897,52 @@ class ReporteAvanzadoController extends Controller
         ];
         return $meses[$mes] ?? '';
     }
+
+    // CONSULTA PARA OBTENER EL TOTAL DE LAS ASESORIAS REALIZADAS POR EL ESPECIALISTA POR DIA
+    public function reporte_servicios_integrales_pdf(Request $request)
+    {
+        try {
+            $directorio_id = $request->get('directorio_id');
+            $desde         = $request->get('desde');
+            $hasta         = $request->get('hasta');
+
+            if (!$directorio_id) {
+                return response()->json([
+                    'status' => 'error',
+                    'message' => 'El parámetro "directorio_id" es obligatorio.',
+                    'data' => []
+                ], 400);
+            }
+
+            $totalAsesorias = BrAsesoria::where('directorio_id', $directorio_id)
+                ->where('estado_registro', true)
+                ->when($desde, function ($query) use ($desde) {
+                    return $query->whereDate('fecha_asesoria', '>=', $desde);
+                })
+                ->when($hasta, function ($query) use ($hasta) {
+                    return $query->whereDate('fecha_asesoria', '<=', $hasta);
+                })
+                ->count();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Total de asesorías obtenidas exitosamente.',
+                'data' => [
+                    'directorio_id' => $directorio_id,
+                    'total_asesorias' => $totalAsesorias
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            Log::error('Error en reporte_servicios_integrales_pdf: ' . $e->getMessage());
+            Log::error($e->getTraceAsString());
+
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al generar el reporte de servicios integrales.',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
 }
