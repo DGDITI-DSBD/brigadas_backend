@@ -903,6 +903,9 @@ class ReporteAvanzadoController extends Controller
     public function reporte_servicios_integrales_pdf(Request $request)
     {
         try {
+
+            log::info('Generando reporte de servicios integrales con parámetros: ', ['Filtros' => $request->all()]);
+
             $directorio_id = $request->get('directorio_id');
             $municipio_id = $request->get('municipio_id');
             $desde = $request->get('desde');
