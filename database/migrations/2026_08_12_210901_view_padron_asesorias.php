@@ -14,13 +14,23 @@ return new class extends Migration
         DB::statement("
             CREATE VIEW reporte_asesorias_respuestas AS 
 
-                        select  e.id as id_tipo_asesoria, 
-                        e.descripcion as asesoria_nombre, 
-                        json.asesoria_id as asesoria_id,
-                        a.folio_relacionado as folio_relacionado, 
+                select  e.id as id_tipo_asesoria, 
+                        c.id as asesor_atendio_id,
+                        NOW()::date as fecha_formato,
+						b.fecha_asesoria,
+                        e.descripcion as tipo_asesoria, 
+						a.ct_municipio,
+                        a.municipio as municipio, 
+                        --json.asesoria_id as asesoria_id,
+                        a.folio_relacionado as folio, 
+                        a.nombres as nombre,
                         a.primer_ap as primer_apellido, 
                         a.segundo_ap as segundo_apellido,
-                        a.nombres as nombres,
+                        (case when a.genero = 'M' then 'MUJER' else 'HOMBRE' end) as genero,
+                        a.edad, 
+                        a.telefono, 
+                        f.grado_estudios as escolaridad,
+                        g.estado_civil as estado_civil,
                         a.fecha_nacimiento as fecha_nacimiento,
                         json.respuestas_to_json as respuestas
                 from (
@@ -73,6 +83,10 @@ return new class extends Migration
                     on c.id = b.asesor_atendio_id
                 join br_cat_tipo_asesoria e
                     on e.id = c.tipo_asesoria
+                join br_cat_grado_estudios f
+                    on f.ct_gdo_estudios = a.ct_gdo_estudios
+                join br_cat_estado_civil g
+                    on g.ct_edo_civil = a.ct_edo_civil
         ");
     }
 

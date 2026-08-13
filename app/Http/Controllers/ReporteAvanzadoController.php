@@ -423,13 +423,13 @@ class ReporteAvanzadoController extends Controller
     public function reporte_por_municipio_pdf(Request $request)
     {
         try {
-            Log::info('Generando reporte por municipio con parámetros: ', ['Filtros' => $request->all()]);
+            //Log::info('Generando reporte por municipio con parámetros: ', ['Filtros' => $request->all()]);
 
             $municipio_id = $request->get('municipio');
             $desde = $request->get('desde');
             $hasta = $request->get('hasta');
 
-            Log::info('Parámetros recibidos - municipio_id: ' . ($municipio_id ?? 'TODOS') . ', desde: ' . ($desde ?? 'NO') . ', hasta: ' . ($hasta ?? 'NO'));
+//            Log::info('Parámetros recibidos - municipio_id: ' . ($municipio_id ?? 'TODOS') . ', desde: ' . ($desde ?? 'NO') . ', hasta: ' . ($hasta ?? 'NO'));
 
             // ========== VALIDACIONES ==========
 
@@ -491,13 +491,13 @@ class ReporteAvanzadoController extends Controller
                 // Caso 3: Solo municipio → año actual
                 $year = date('Y');
                 $query->whereYear('fecha_asesoria', $year);
-                Log::info('Caso 3: Solo municipio - filtrando por año actual: ' . $year);
+                //Log::info('Caso 3: Solo municipio - filtrando por año actual: ' . $year);
             }
 
             // ========== OBTENER RESULTADOS ==========
             $asesorias = $query->orderBy('fecha_asesoria')->get();
 
-            Log::info('Asesorías encontradas: ' . $asesorias->count());
+            //Log::info('Asesorías encontradas: ' . $asesorias->count());
 
             // ========== PROCESAR DATOS ==========
             $rows = [];
@@ -890,25 +890,44 @@ class ReporteAvanzadoController extends Controller
     public function por_asesoria_concentrado(Request $request) {
         try {
 
+        //Log::info("request", [$request->all()]);
         if(is_null($request->tipo_asesoria_id) || empty($request->tipo_asesoria_id)){
                 return response()->json($this->typeResponse($this->respuesta_padre, 'asesorias_reporte_param_required', null)); 
         }
 
-            $_work_collection =  ViewReportePAsesorias::where('id_tipo_asesoria', $request->tipo_asesoria_id)->get();
+            $_work_collection =  ViewReportePAsesorias::where('id_tipo_asesoria', $request->tipo_asesoria_id);
+            if(!empty($request->asesor_atendio_id)){
+                $_work_collection->where('asesor_atendio_id', $request->asesor_atendio_id);
+            }
+            if(!empty($request->municipio_id)){
+                $_work_collection->where('ct_municipio', $request->municipio_id);
+            }
+
+            if(!empty($request->fecha_asesoria)){
+                $_work_collection->where('fecha_asesoria', $request->fecha_asesoria);
+            }
+
+
+                $_work_collection =  $_work_collection->get();
 
             if($_work_collection->count() === 0){
                 return response()->json($this->typeResponse($this->respuesta_padre, 'asesorias_reportes_sin_datos', null)); 
             }
 
             $header_default = [
-                'id_tipo_asesoria',
-                'asesoria_nombre',
-                'asesoria_id',
-                'folio_relacionado',
+                'fecha_formato',
+                'tipo_asesoria',
+                'municipio',
+                'folio',
+                'nombre',
                 'primer_apellido',
                 'segundo_apellido',
-                'nombres',
-                'fecha_nacimiento'
+                'genero',
+                'edad',
+                'telefono',
+                'escolaridad',
+                'estado_civil',
+                'fecha_nacimiento',
             ];
 
             $header_preguntas = [];
@@ -928,14 +947,19 @@ class ReporteAvanzadoController extends Controller
 
             foreach($_work_collection as $value){
                 $fila=[
-                    'id_tipo_asesoria' => $value->id_tipo_asesoria,
-                    'asesoria_nombre'  => $value->asesoria_nombre,
-                    'asesoria_id'      => $value->asesoria_id,
-                    'folio_relacionado' => $value->folio_relacionado,
-                    'primer_apellido'   => $value->primer_apellido,
-                    'segundo_apellido'  => $value->segundo_apellido,
-                    'nombres'           => $value->nombres,
-                    'fecha_nacimiento'  => $value->fecha_nacimiento
+                    'fecha_formato' => $value->fecha_formato, 
+                    'tipo_asesoria' => $value->tipo_asesoria, 
+                    'municipio' => $value->municipio, 
+                    'folio' => $value->folio, 
+                    'nombre' => $value->nombre, 
+                    'primer_apellido' => $value->primer_apellido, 
+                    'segundo_apellido' => $value->segundo_apellido, 
+                    'genero' => $value->genero, 
+                    'edad' => $value->edad, 
+                    'telefono' => $value->telefono, 
+                    'escolaridad' => $value->escolaridad, 
+                    'estado_civil' => $value->estado_civil, 
+                    'fecha_nacimiento' => $value->fecha_nacimiento
                 ];
                 $filas_preguntas = json_decode($value->respuestas, true);
                 
@@ -945,26 +969,82 @@ class ReporteAvanzadoController extends Controller
                 $rows[] = $fila;
             }
 
-            Log::info("filas", [$rows]);
+            //Log::info("filas", [$rows]);
                 
-            $new_header = array_merge($header_default, $header_preguntas);
+            $new_header = array_merge($header_default, array_keys($header_preguntas));
                 
-                return response()->json($this->typeResponse($this->respuesta_padre, 'asesorias_success', $_work_collection)); 
+                //return response()->json($this->typeResponse($this->respuesta_padre, 'asesorias_success', $_work_collection)); 
 
-            // $spreadsheet = new Spreadsheet();
-            // $hoja_calculo = $spread->getActiveSheet();
+            $spreadsheet = new Spreadsheet();
+            $hoja_calculo = $spreadsheet->getActiveSheet();
 
-            // $colIndex = 1;
+            $col = 1;
+            $row = 1;
 
-            // $col = Coordinate::stringFromColumnIndex($colIndex); // Cabecera A .. B .. C
+            $header_style = [
+                'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
+                'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '6F1111']],
+                'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
+                'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN]]
+            ];
 
+            $col = Coordinate::stringFromColumnIndex($col); // Cabecera A .. B .. C
+            
+            
+            foreach($new_header as $vars_header){
+                $hoja_calculo->setCellValue($col.$row, $vars_header);
+                $hoja_calculo->getStyle($col.$row)->applyFromArray($header_style);
+                $hoja_calculo->getColumnDimension($col)->setWidth(25);
+                $col++;
+            }
+
+            $row++;
+            
+                foreach ($rows as $data) {
+                    $col_data = 1;
+                    foreach($new_header as $vars_header){
+                        $init_col_data = Coordinate::stringFromColumnIndex($col_data);
+                        $hoja_calculo->setCellValue($init_col_data.$row, !is_array($data[$vars_header]) ? $data[$vars_header] : implode(', ', $data[$vars_header]));
+                        $col_data++;
+                    }
+                    $row++;
+                }
+            
+                
+
+            $write_file = new Xlsx($spreadsheet);
+            ob_start();
+            // Evaluar conforme a los request de datos
+            $count_collect = $_work_collection->count();
+            $filename = !empty($request->asesor_atendio_id) ? 'padron_'. now()->format('Y-m-d_His'). 'id_asesor-'.$request->asesor_atendio_id.'-'.$count_collect.'-tipo_asesoria_id-'.$request->tipo_asesoria_id.'.xlsx' : 'padron_'. now()->format('Y-m-d_His').'-tipo_asesoria_id-'.$request->tipo_asesoria_id.'.xlsx';
+
+        
+            // }
+            $write_file->save('php://output');
+            $excel_archivo = ob_get_clean();
+
+            if(ob_get_length()){
+                ob_end_clean();
+            }
+
+            return response()->make($excel_archivo, 200,  [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+                'Content-Disposition' => 'attachment; filename="' .$filename.'"',
+                'Content-Length' => strlen($excel_archivo),
+                'Access-Control-Expose-Headers' => 'Content-Disposition'
+            ]);
 
 
 
 
             
         } catch (Exception $th) {
-            return response()->json($this->typeResponse($this->respuesta_padre, 'asesorias_error', null)); 
+            //Log::info("message", [$th->getMessage()]);
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Error al generar el reporte general',
+                'error' => $e->getMessage()
+            ], 500);
         }
     }
 
@@ -993,7 +1073,7 @@ class ReporteAvanzadoController extends Controller
     {
         try {
 
-            log::info('Generando reporte de servicios integrales con parámetros: ', ['Filtros' => $request->all()]);
+            //log::info('Generando reporte de servicios integrales con parámetros: ', ['Filtros' => $request->all()]);
 
             $directorio_id = $request->get('directorio_id');
             $municipio_id = $request->get('municipio_id');
