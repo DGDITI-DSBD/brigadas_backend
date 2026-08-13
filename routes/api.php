@@ -47,6 +47,8 @@ Route::prefix('v1')->group(function () {
             Route::get('reporte-por-municipio', [ReporteAvanzadoController::class, 'reporte_por_municipio_pdf']);
             Route::get('reporte-general', [ReporteAvanzadoController::class, 'reporte_general_excel']);
             Route::get('reporte-especialista', [ReporteAvanzadoController::class, 'reporte_servicios_integrales_pdf']);
+
+            
         });
 
         // ─── Historial de Brigadas ─────────────────────────────────────────
@@ -125,4 +127,8 @@ Route::prefix('v1')->group(function () {
         Route::put('/{id}', [asesoriaController::class, 'update_paciente']); // Actualizar datos del paciente
     });
 
+    
+
 });
+Route::get('reporte-asesorias-respuestas', [ReporteAvanzadoController::class, 'por_asesoria_concentrado']);
+

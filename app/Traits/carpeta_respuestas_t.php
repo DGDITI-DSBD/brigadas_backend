@@ -44,6 +44,10 @@ trait carpeta_respuestas_t
                 // Asesorías generales (listado plano)
                 'asesorias_success' => ['ok' => true, 'backlog' => 0, 'backdata' => $data, 'message_description' => 'Asesorías obtenidas con éxito'],
                 'asesorias_sin_datos' => ['ok' => true, 'backlog' => 2, 'backdata' => $data, 'message_description' => 'No hay asesorías para el período'],
+
+                'asesorias_error' => ['ok' => false, 'backlog' => 500, 'backdata' => null, 'message_description' => 'Error en el servidor'],
+                'asesorias_reporte_param_required' => ['ok' => false, 'backlog' => 500, 'backdata' => null, 'message_description' => 'El identificador de busqueda es requerido'],
+                'asesorias_reportes_sin_datos' => ['ok' => false, 'backlog' => 2, 'backdata' => null, 'message_description' => 'Sin datos en la especialidad'],
             ],
             'historial' => [
                 'historial_success' => ['ok' => true, 'backlog' => 0, 'backdata' => $data, 'message_description' => 'Historial obtenido con éxito'],

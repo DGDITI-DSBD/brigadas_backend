@@ -7,18 +7,26 @@ use App\Models\CatMunicipio;
 use Carbon\Carbon;
 use Illuminate\Http\Request;
 use App\Traits\carpeta_respuestas_t;
+
 use App\Models\BrDirectorio;
+use App\Models\ViewReportePAsesorias;
+
 use App\Services\ReporteAvanzadoService;
+
 use App\Http\Resources\EspecialistaReporteResource;
 use Illuminate\Support\Facades\Auth;
 use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Support\Facades\Log;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
+
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Color;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+
+
 
 class ReporteAvanzadoController extends Controller
 {
@@ -876,6 +884,87 @@ class ReporteAvanzadoController extends Controller
                 'message' => 'Error al generar el reporte general',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    public function por_asesoria_concentrado(Request $request) {
+        try {
+
+        if(is_null($request->tipo_asesoria_id) || empty($request->tipo_asesoria_id)){
+                return response()->json($this->typeResponse($this->respuesta_padre, 'asesorias_reporte_param_required', null)); 
+        }
+
+            $_work_collection =  ViewReportePAsesorias::where('id_tipo_asesoria', $request->tipo_asesoria_id)->get();
+
+            if($_work_collection->count() === 0){
+                return response()->json($this->typeResponse($this->respuesta_padre, 'asesorias_reportes_sin_datos', null)); 
+            }
+
+            $header_default = [
+                'id_tipo_asesoria',
+                'asesoria_nombre',
+                'asesoria_id',
+                'folio_relacionado',
+                'primer_apellido',
+                'segundo_apellido',
+                'nombres',
+                'fecha_nacimiento'
+            ];
+
+            $header_preguntas = [];
+            $fila=[];
+
+            $object_respuestas = [];
+            $filas_preguntas = [];
+            $rows = [];
+
+            foreach($_work_collection as $key => $value){
+                $object_respuestas = json_decode($value->respuestas, true);
+                foreach($object_respuestas as $pregunta => $respuesta){
+                    $header_preguntas[$pregunta] = true; 
+                }
+                
+            }
+
+            foreach($_work_collection as $value){
+                $fila=[
+                    'id_tipo_asesoria' => $value->id_tipo_asesoria,
+                    'asesoria_nombre'  => $value->asesoria_nombre,
+                    'asesoria_id'      => $value->asesoria_id,
+                    'folio_relacionado' => $value->folio_relacionado,
+                    'primer_apellido'   => $value->primer_apellido,
+                    'segundo_apellido'  => $value->segundo_apellido,
+                    'nombres'           => $value->nombres,
+                    'fecha_nacimiento'  => $value->fecha_nacimiento
+                ];
+                $filas_preguntas = json_decode($value->respuestas, true);
+                
+                foreach($header_preguntas as $pregunta => $_){
+                    $fila[$pregunta] = $filas_preguntas[$pregunta] ?? null;
+                }
+                $rows[] = $fila;
+            }
+
+            Log::info("filas", [$rows]);
+                
+            $new_header = array_merge($header_default, $header_preguntas);
+                
+                return response()->json($this->typeResponse($this->respuesta_padre, 'asesorias_success', $_work_collection)); 
+
+            // $spreadsheet = new Spreadsheet();
+            // $hoja_calculo = $spread->getActiveSheet();
+
+            // $colIndex = 1;
+
+            // $col = Coordinate::stringFromColumnIndex($colIndex); // Cabecera A .. B .. C
+
+
+
+
+
+            
+        } catch (Exception $th) {
+            return response()->json($this->typeResponse($this->respuesta_padre, 'asesorias_error', null)); 
         }
     }
 
