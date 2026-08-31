@@ -581,13 +581,15 @@ class ReporteAvanzadoController extends Controller
             // ─── Consulta base ─────────────────────────────────────────
             $query = BrAsesoria::query()
                 ->join('br_pacientes', 'br_asesorias.paciente_id', '=', 'br_pacientes.id')
-                ->join('br_cat_tipo_asesoria', 'br_asesorias.tipo_asesoria_canaliza_id', '=', 'br_cat_tipo_asesoria.id')
+                ->leftJoin('br_directorio', 'br_asesorias.asesor_atendio_id', '=', 'br_directorio.id')
+                ->leftJoin('br_cat_tipo_asesoria', 'br_directorio.tipo_asesoria', '=', 'br_cat_tipo_asesoria.id')
                 ->where('br_asesorias.estado_registro', true)
                 ->select(
                     'br_pacientes.municipio',
                     'br_cat_tipo_asesoria.descripcion as especialidad',
                     'br_asesorias.fecha_asesoria'
                 );
+
 
             if ($desde) {
                 $query->whereDate('br_asesorias.fecha_asesoria', '>=', $desde);
