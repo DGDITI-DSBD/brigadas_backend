@@ -22,6 +22,7 @@ class BrPaciente extends Model
         'segundo_ap',
         'nombres',
         'fecha_nacimiento',
+        'edad',
         'genero',
         'ct_edo_civil',
         'tp_id_oficial',

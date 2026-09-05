@@ -93,10 +93,12 @@ trait carpeta_respuestas_t
                     'consulta_success'                                  => ['ok' => true,  'backlog' => 0, 'backdata' => $data, 'message_description' => 'Consulta realizada con éxito'], 
                     'consulta_sin_datos'                                => ['ok' => true,  'backlog' => 2, 'backdata' => $data, 'message_description' => 'La consulta no devolvió ningún dato'],
                     'consulta_fail'                                     => ['ok' => false, 'backlog' => 1, 'backdata' => $data, 'message_description' => 'Falló en la consulta del dato'],
-                    'paciente_existente'                                => ['ok' => true,  'backlog' => 3, 'backdata' => $data, 'message_description' => 'El paciente ya existe en el sistema'],
+                    'paciente_existente'                                => ['ok' => true,  'backlog' => 3, 'backdata' => $data, 'message_description' => 'El paciente ya existe en el sistema. Verifique la curp y/o folio relacionado'],
+                    'paciente_inexistente'                              => ['ok' => true,  'backlog' => 5, 'backdata' => $data, 'message_description' => 'La persona consultada ya no existe en el directorio de beneficiarias. Verifique los datos con el coordinador o jefe de brigada.'],
                     'paciente_creado_success'                           => ['ok' => true,  'backlog' => 0, 'backdata' => $data, 'message_description' => 'Paciente creado con éxito'],
                     'validacion_paciente_fail'                          => ['ok' => false, 'backlog' => 4, 'backdata' => $data, 'message_description' => 'Falló en la validación del paciente'],
                     'creacion_paciente_fail'                            => ['ok' => false, 'backlog' => 1, 'backdata' => $data, 'message_description' => 'Falló en la creación del paciente'],
+                    
             ],
             'catalogos' => [
                 'consulta_success'              => ['ok' => true, 'backlog' => 0, 'backdata' => $data, 'message_description' => 'Consulta realizada con éxito'], 

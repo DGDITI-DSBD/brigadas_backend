@@ -30,14 +30,11 @@ class asesoriaController extends Controller
         $this->construir_respuesta = [];
     }
 
-    /**
-     * Calcular edad a partir de fecha de nacimiento
-     * @param string|null $fecha_nacimiento
-     * @return int|null
-     */
-    private function calcularEdad($fecha_nacimiento)
+  
+    protected function calcularEdad($fecha_nacimiento)
     {
-        if (empty($fecha_nacimiento)) {
+        
+        if (is_null($fecha_nacimiento)) {
             return null;
         }
 
@@ -45,8 +42,10 @@ class asesoriaController extends Controller
             $fechaNac = new \DateTime($fecha_nacimiento);
             $hoy = new \DateTime();
             $edad = $hoy->diff($fechaNac)->y;
+            Log::info("calculo fecha", [$fecha_nacimiento, $edad]);
             return $edad;
         } catch (\Exception $e) {
+            Log::info("error", [$e]);
             Log::warning('Error al calcular edad desde fecha de nacimiento: ' . $e->getMessage());
             return null;
         }
@@ -406,6 +405,8 @@ class asesoriaController extends Controller
 
             try{
 
+            Log::info("all request", [$request->all()]);
+
             $this -> respuesta_padre = 'asesorias';
 
                 // Validación de datos de preguntas y opciones 
@@ -446,7 +447,7 @@ class asesoriaController extends Controller
                     $this -> construir_respuesta = ['message' => 'Preguntas y respuestas insertadas exitosamente.'];
                     return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
                 } catch (\Throwable $th) {
-                        
+                        Log::info("Exception", [$th]);
                         $this -> respuesta_hijo = 'excepcion_transaccion_preguntas_respuestas';
                         $this -> construir_respuesta = ['error' => 'Error al iniciar la transacción: ' . $th->getMessage()];
                         return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
@@ -455,6 +456,9 @@ class asesoriaController extends Controller
                     
 
             }catch(\Exception $e){
+
+                        Log::info("Exception", [$e]);
+                    
                     $this -> respuesta_hijo = 'insercion_preguntas_respuestas_fail';
                     
                     $this -> construir_respuesta = ['error' => 'Error al insertar preguntas y respuestas: ' . $e->getMessage()];
@@ -639,7 +643,7 @@ class asesoriaController extends Controller
                 $this -> respuesta_padre = 'catalogos';
              
 
-                $beneficiarias_historico = BrPadronHistorico::select('folio_relacionado', 
+                $beneficiarias_historico = BrPadronHistorico::select('id', 'folio_relacionado', 
                 'primer_ap', 'segundo_ap', 'nombres', 'fecha_nacimiento', 'curp', 'ct_municipio', 'municipio', 
                 'genero', 'edad', 'ct_edo_civil', 'ct_escolaridad', 'tp_id_oficial', 'id_oficial',
                 'ct_ent_nac', 'calle', 'num_ext', 'num_int', 'entre_calle', 'y_calle', 'otra_referencia', 
@@ -791,7 +795,7 @@ class asesoriaController extends Controller
             $this -> respuesta_padre = 'asesorias';
 
           
-
+            Log::info("request", [$request->all()]);
             // Validar todos los datos necesarios
             $validatedData = $request->validate([
                 // Datos del paciente (para importar si no existe)
@@ -862,64 +866,86 @@ class asesoriaController extends Controller
             try {
                 // PASO 1: Crear o buscar paciente
                 $pacienteData = $validatedData['paciente'];
+                $tipo_transaction = $request['paciente']['tipo'];
+                Log::info("tipo transaction", [$tipo_transaction]);
                 
                 // Calcular edad automáticamente desde fecha de nacimiento
-                if (isset($pacienteData['fecha_nacimiento'])) {
+                if (isset($pacienteData['fecha_nacimiento']) && is_null($validatedData['paciente']['edad'])) {
                     $pacienteData['edad'] = $this->calcularEdad($pacienteData['fecha_nacimiento']);
                 }
-                
-                $paciente = BrPaciente::where('curp', $pacienteData['curp'])
+
+                if($tipo_transaction !== 'automatico'){
+
+                    $paciente = BrPaciente::where('curp', $pacienteData['curp'])
                     ->where(function($query) use ($pacienteData) {
                         if ( !empty($pacienteData['folio_relacionado']) 
-                             || !is_null($pacienteData['folio_relacionado'])
-                             || $pacienteData['folio_relacionado'] !== 'S/D'
+                             && !is_null($pacienteData['folio_relacionado'])
+                             && $pacienteData['folio_relacionado'] !== 'S/D'
                            ) {
                             $query->where('folio_relacionado', $pacienteData['folio_relacionado']);
                         }
                     })
                     ->first();
 
-                if (!$paciente) {
-                    // Crear nuevo paciente
-                    $paciente = BrPaciente::create([
-                        'folio_relacionado'      => $pacienteData['folio_relacionado'] ?? null,
-                        'primer_ap'              => $pacienteData['primer_ap'],
-                        'segundo_ap'             => $pacienteData['segundo_ap'] ?? 'XX',
-                        'nombres'                => $pacienteData['nombres'],
-                        'fecha_nacimiento'       => $pacienteData['fecha_nacimiento'] ?? null,
-                        'edad'                   => $pacienteData['edad'] ?? null,
-                        'genero'                 => $pacienteData['genero'] ?? null,
-                        'ct_edo_civil'           => $pacienteData['ct_edo_civil'] ?? null,
-                        'ct_gdo_estudios'        => $pacienteData['ct_escolaridad'] ?? null,
-                        'tp_id_oficial'          => $pacienteData['tp_id_oficial'] ?? null,
-                        'id_oficial'             => $pacienteData['id_oficial'] ?? null,
-                        'ct_ent_nac'             => $pacienteData['ct_ent_nac'] ?? null,
-                        'curp'                   => isset($pacienteData['curp']) ? strtoupper($this->remove_accents($pacienteData['curp'])) : null,
-                        'calle'                  => isset($pacienteData['calle']) ? strtoupper($this->remove_accents($pacienteData['calle'])) : null,
-                        'num_ext'                => $pacienteData['num_ext'] ?? null,
-                        'num_int'                => $pacienteData['num_int'] ?? null,
-                        'entre_calle'            => isset($pacienteData['entre_calle']) ? strtoupper($this->remove_accents($pacienteData['entre_calle'])) : null,
-                        'y_calle'                => isset($pacienteData['y_calle']) ? strtoupper($this->remove_accents($pacienteData['y_calle'])) : null,
-                        'otra_referencia'        => isset($pacienteData['otra_referencia']) ? strtoupper($this->remove_accents($pacienteData['otra_referencia'])) : null,
-                        'colonia'                => isset($pacienteData['colonia']) ? strtoupper($this->remove_accents($pacienteData['colonia'])) : null,
-                        'ct_municipio'           => $pacienteData['ct_municipio'] ?? null,
-                        'municipio'              => isset($pacienteData['municipio']) ? strtoupper($this->remove_accents($pacienteData['municipio'])) : null,
-                        'ct_localidad'           => $pacienteData['ct_localidad'] ?? null,
-                        'localidad'              => isset($pacienteData['localidad']) ? strtoupper($this->remove_accents($pacienteData['localidad'])) : null,
-                        'ct_entidad_federativa'  => $pacienteData['ct_entidad_federativa'] ?? null,
-                        'entidad_federativa'     => isset($pacienteData['entidad_federativa']) ? strtoupper($this->remove_accents($pacienteData['entidad_federativa'])) : null,
-                        'codigo_postal_id'       => $pacienteData['codigo_postal_id'],
-                        'codigo_postal'          => $pacienteData['codigo_postal'] ?? null,
-                        'telefono'               => $pacienteData['telefono'] ?? null,
-                        'celular'                => $pacienteData['celular'] ?? null,
-                        'email'                  => $pacienteData['email'] ?? null,
-                        'ct_nacionalidad'        => $pacienteData['ct_nacionalidad'] ?? null,
-                        'requiere_seguimiento'    => false,
-                        'estado_padron'          => 'ACTIVO',
-                    ]);
+                    if(!$paciente){
+
+                        $paciente = BrPaciente::create([
+                            'folio_relacionado'      => $pacienteData['folio_relacionado'] ?? null,
+                            'primer_ap'              => $pacienteData['primer_ap'],
+                            'segundo_ap'             => $pacienteData['segundo_ap'] ?? 'XX',
+                            'nombres'                => $pacienteData['nombres'],
+                            'fecha_nacimiento'       => $pacienteData['fecha_nacimiento'] ?? null,
+                            'edad'                   => $pacienteData['edad'] ?? null,
+                            'genero'                 => $pacienteData['genero'] ?? null,
+                            'ct_edo_civil'           => $pacienteData['ct_edo_civil'] ?? null,
+                            'ct_gdo_estudios'        => $pacienteData['ct_escolaridad'] ?? null,
+                            'tp_id_oficial'          => $pacienteData['tp_id_oficial'] ?? null,
+                            'id_oficial'             => $pacienteData['id_oficial'] ?? null,
+                            'ct_ent_nac'             => $pacienteData['ct_ent_nac'] ?? null,
+                            'curp'                   => isset($pacienteData['curp']) ? strtoupper($this->remove_accents($pacienteData['curp'])) : null,
+                            'calle'                  => isset($pacienteData['calle']) ? strtoupper($this->remove_accents($pacienteData['calle'])) : null,
+                            'num_ext'                => $pacienteData['num_ext'] ?? null,
+                            'num_int'                => $pacienteData['num_int'] ?? null,
+                            'entre_calle'            => isset($pacienteData['entre_calle']) ? strtoupper($this->remove_accents($pacienteData['entre_calle'])) : null,
+                            'y_calle'                => isset($pacienteData['y_calle']) ? strtoupper($this->remove_accents($pacienteData['y_calle'])) : null,
+                            'otra_referencia'        => isset($pacienteData['otra_referencia']) ? strtoupper($this->remove_accents($pacienteData['otra_referencia'])) : null,
+                            'colonia'                => isset($pacienteData['colonia']) ? strtoupper($this->remove_accents($pacienteData['colonia'])) : null,
+                            'ct_municipio'           => $pacienteData['ct_municipio'] ?? null,
+                            'municipio'              => isset($pacienteData['municipio']) ? strtoupper($this->remove_accents($pacienteData['municipio'])) : null,
+                            'ct_localidad'           => $pacienteData['ct_localidad'] ?? null,
+                            'localidad'              => isset($pacienteData['localidad']) ? strtoupper($this->remove_accents($pacienteData['localidad'])) : null,
+                            'ct_entidad_federativa'  => $pacienteData['ct_entidad_federativa'] ?? null,
+                            'entidad_federativa'     => isset($pacienteData['entidad_federativa']) ? strtoupper($this->remove_accents($pacienteData['entidad_federativa'])) : null,
+                            'codigo_postal_id'       => $pacienteData['codigo_postal_id'],
+                            'codigo_postal'          => $pacienteData['codigo_postal'] ?? null,
+                            'telefono'               => $pacienteData['telefono'] ?? null,
+                            'celular'                => $pacienteData['celular'] ?? null,
+                            'email'                  => $pacienteData['email'] ?? null,
+                            'ct_nacionalidad'        => $pacienteData['ct_nacionalidad'] ?? null,
+                            'requiere_seguimiento'    => false,
+                            'estado_padron'          => 'ACTIVO',
+                        ]);
+
+                    }
+
+                     
+                }else {
+
+                    $paciente = BrPaciente::where('id', $pacienteData['id'])->first();
+                    
+                    if(!$paciente){
+                         $this -> respuesta_padre = 'pacientes';
+                        $this -> respuesta_hijo = 'paciente_inexistente';
+                        return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, null), 500);
+                    }
+                    
+
+
+                }
+                   
 
              
-                } 
+               
 
                 // PASO 2: Crear asesoría
                 $asesoriaData = $validatedData['asesoria'];
@@ -969,7 +995,7 @@ class asesoriaController extends Controller
             } catch (\Throwable $th) {
                 // Rollback automático en caso de error
                 DB::rollBack();
-                
+                Log::info("error throwable", [$th]);
                 
                 
                 $this -> respuesta_hijo = 'creacion_asesoria_completa_fail';
@@ -978,12 +1004,13 @@ class asesoriaController extends Controller
             }
 
         }catch(\Illuminate\Validation\ValidationException $e){
+            Log::info("error validacion", [$e]);
             $this -> respuesta_hijo = 'validacion_asesoria_fail';
             $this -> construir_respuesta = ['errors' => $e->errors()];
    
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 422);
         }catch(\Exception $e){
-            
+            Log::info("error throwable", [$th]);
             $this -> respuesta_hijo = 'creacion_asesoria_completa_fail';
             $this -> construir_respuesta = ['error' => $e -> getMessage()];
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 500);
@@ -1067,6 +1094,7 @@ class asesoriaController extends Controller
         try{
             $this -> respuesta_padre = 'asesorias';
 
+            //Log::info("all data", [$request->all()]);
 
 
             // Buscar la asesoría
@@ -1084,7 +1112,7 @@ class asesoriaController extends Controller
                 'paciente.segundo_ap'             => 'nullable|string',
                 'paciente.nombres'                => 'sometimes|string',
                 'paciente.fecha_nacimiento'       => 'nullable|date',
-                'paciente.edad'                   => 'nullable|integer',
+                'paciente.edad'                   => 'nullable',
                 'paciente.genero'                 => 'nullable|string',
                 'paciente.ct_edo_civil'           => 'nullable|integer',
                 'paciente.ct_gdo_estudios'        => 'nullable|integer',
@@ -1135,16 +1163,20 @@ class asesoriaController extends Controller
                 return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 422);
             }
 
+            Log::info("validated data", [$validatedData['paciente']]);
+
             // Iniciar transacción para garantizar atomicidad
             DB::beginTransaction();
 
             try {
                 // PASO 1: Actualizar datos del paciente (si se enviaron)
-                if (isset($validatedData['paciente']) && !empty($validatedData['paciente'])) {
+                if (isset($validatedData['paciente'])) {
                     $paciente = BrPaciente::find($asesoria->paciente_id);
                     if ($paciente) {
                         // Calcular edad automáticamente desde fecha de nacimiento si fue enviada
-                        if (isset($validatedData['paciente']['fecha_nacimiento'])) {
+                        if (isset($validatedData['paciente']['fecha_nacimiento']) && is_null($validatedData['paciente']['edad'])) {
+                            Log::info("edad calculo desde funcion actualizar", [$validatedData['paciente']['edad']]);
+
                             $validatedData['paciente']['edad'] = $this->calcularEdad($validatedData['paciente']['fecha_nacimiento']);
                            
                         }
@@ -1179,6 +1211,8 @@ class asesoriaController extends Controller
                         ];
                     }
 
+                    Log::info("object converting", $nuevasRespuestas);
+
                     // Insertar todas las nuevas respuestas
                     if (!empty($nuevasRespuestas)) {
                         BrAsesoriasPreguntasRespuestas::insert($nuevasRespuestas);
@@ -1199,7 +1233,7 @@ class asesoriaController extends Controller
             } catch (\Throwable $th) {
                 // Rollback automático en caso de error
                 DB::rollBack();
-                
+                Log::info("actualizacion asesoria throwable", [$th]);
                 
                 
                 $this -> respuesta_hijo = 'actualizacion_asesoria_completa_fail';
@@ -1208,12 +1242,13 @@ class asesoriaController extends Controller
             }
 
         }catch(\Illuminate\Validation\ValidationException $e){
+            Log::info("actualizacion asesoria validacion", [$e]);
             $this -> respuesta_hijo = 'validacion_asesoria_fail';
             $this -> construir_respuesta = ['errors' => $e->errors()];
             
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 422);
         }catch(\Exception $e){
-            
+            Log::info("actualizacion asesoria", [$e]);
             $this -> respuesta_hijo = 'actualizacion_asesoria_completa_fail';
             $this -> construir_respuesta = ['error' => $e -> getMessage()];
             return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta), 500);
