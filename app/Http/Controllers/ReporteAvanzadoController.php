@@ -283,14 +283,17 @@ class ReporteAvanzadoController extends Controller
             // Obtener el año (por defecto el año actual)
             $year = $request->get('year', date('Y'));
 
-            // Obtener todas las asesorías del año con sus relaciones
-            // SOLO asesorías que TIENEN un tipo de asesoría asignado
-            $asesorias = BrAsesoria::with([
-                'asesoria_canalizacion:id,descripcion'
-            ])
-                ->whereYear('fecha_asesoria', $year)
-                ->where('estado_registro', 1)
-                ->whereNotNull('tipo_asesoria_canaliza_id')
+            // Obtener todas las asesorías del año con sus relaciones X la especialidad del asesor que atendió (JOIN con br_directorio y br_cat_tipo_asesoria)
+            $asesorias = BrAsesoria::query()
+                ->leftJoin('br_directorio', 'br_asesorias.asesor_atendio_id', '=', 'br_directorio.id')
+                ->leftJoin('br_cat_tipo_asesoria', 'br_directorio.tipo_asesoria', '=', 'br_cat_tipo_asesoria.id')
+                ->where('br_asesorias.estado_registro', true)
+                ->whereYear('br_asesorias.fecha_asesoria', $year)
+                ->whereNotNull('br_directorio.tipo_asesoria')
+                ->select(
+                    'br_asesorias.fecha_asesoria',
+                    'br_cat_tipo_asesoria.descripcion as especialidad'
+                )
                 ->get();
 
             // Nombres de meses en español
@@ -352,16 +355,16 @@ class ReporteAvanzadoController extends Controller
             // Procesar asesorías
             foreach ($asesorias as $asesoria) {
                 $month = (int) date('m', strtotime($asesoria->fecha_asesoria));
-                $tipoAsesoria = $asesoria->asesoria_canalizacion->descripcion;
+                $especialidad = $asesoria->especialidad; // Ahora viene del join
 
                 // Solo contar si está en el catálogo
-                if (in_array($tipoAsesoria, $catalogoEspecialidades)) {
+                if ($especialidad && in_array($especialidad, $catalogoEspecialidades)) {
                     // Incrementar contador mensual
-                    $monthlyData[$month]['rows'][$tipoAsesoria]['count']++;
+                    $monthlyData[$month]['rows'][$especialidad]['count']++;
                     $monthlyData[$month]['total']++;
 
                     // Acumular para resumen anual
-                    $annualSummary[$tipoAsesoria]['count']++;
+                    $annualSummary[$especialidad]['count']++;
                 }
             }
 
@@ -458,7 +461,7 @@ class ReporteAvanzadoController extends Controller
             // Usamos la relación con directorio para obtener la especialidad del profesionista
             $query = BrAsesoria::with([
                 'paciente:id,ct_municipio,municipio',
-                'directorio.tipoAsesoria:id,descripcion'  
+                'directorio.tipoAsesoria:id,descripcion'
             ])
                 ->where('estado_registro', true)                    // Solo asesorías activas
                 // ->whereNotNull('tipo_asesoria_canaliza_id')      // Solo asesorías con tipo de asesoría asignado
@@ -894,7 +897,7 @@ class ReporteAvanzadoController extends Controller
 
         //Log::info("request", [$request->all()]);
         if(is_null($request->tipo_asesoria_id) || empty($request->tipo_asesoria_id)){
-                return response()->json($this->typeResponse($this->respuesta_padre, 'asesorias_reporte_param_required', null)); 
+                return response()->json($this->typeResponse($this->respuesta_padre, 'asesorias_reporte_param_required', null));
         }
 
             $_work_collection =  ViewReportePAsesorias::where('id_tipo_asesoria', $request->tipo_asesoria_id);
@@ -913,7 +916,7 @@ class ReporteAvanzadoController extends Controller
                 $_work_collection =  $_work_collection->get();
 
             if($_work_collection->count() === 0){
-                return response()->json($this->typeResponse($this->respuesta_padre, 'asesorias_reportes_sin_datos', null)); 
+                return response()->json($this->typeResponse($this->respuesta_padre, 'asesorias_reportes_sin_datos', null));
             }
 
             $header_default = [
@@ -942,29 +945,29 @@ class ReporteAvanzadoController extends Controller
             foreach($_work_collection as $key => $value){
                 $object_respuestas = json_decode($value->respuestas, true);
                 foreach($object_respuestas as $pregunta => $respuesta){
-                    $header_preguntas[$pregunta] = true; 
+                    $header_preguntas[$pregunta] = true;
                 }
-                
+
             }
 
             foreach($_work_collection as $value){
                 $fila=[
-                    'fecha_formato' => $value->fecha_formato, 
-                    'tipo_asesoria' => $value->tipo_asesoria, 
-                    'municipio' => $value->municipio, 
-                    'folio' => $value->folio, 
-                    'nombre' => $value->nombre, 
-                    'primer_apellido' => $value->primer_apellido, 
-                    'segundo_apellido' => $value->segundo_apellido, 
-                    'genero' => $value->genero, 
-                    'edad' => $value->edad, 
-                    'telefono' => $value->telefono, 
-                    'escolaridad' => $value->escolaridad, 
-                    'estado_civil' => $value->estado_civil, 
+                    'fecha_formato' => $value->fecha_formato,
+                    'tipo_asesoria' => $value->tipo_asesoria,
+                    'municipio' => $value->municipio,
+                    'folio' => $value->folio,
+                    'nombre' => $value->nombre,
+                    'primer_apellido' => $value->primer_apellido,
+                    'segundo_apellido' => $value->segundo_apellido,
+                    'genero' => $value->genero,
+                    'edad' => $value->edad,
+                    'telefono' => $value->telefono,
+                    'escolaridad' => $value->escolaridad,
+                    'estado_civil' => $value->estado_civil,
                     'fecha_nacimiento' => $value->fecha_nacimiento
                 ];
                 $filas_preguntas = json_decode($value->respuestas, true);
-                
+
                 foreach($header_preguntas as $pregunta => $_){
                     $fila[$pregunta] = $filas_preguntas[$pregunta] ?? null;
                 }
@@ -972,10 +975,10 @@ class ReporteAvanzadoController extends Controller
             }
 
             //Log::info("filas", [$rows]);
-                
+
             $new_header = array_merge($header_default, array_keys($header_preguntas));
-                
-                //return response()->json($this->typeResponse($this->respuesta_padre, 'asesorias_success', $_work_collection)); 
+
+                //return response()->json($this->typeResponse($this->respuesta_padre, 'asesorias_success', $_work_collection));
 
             $spreadsheet = new Spreadsheet();
             $hoja_calculo = $spreadsheet->getActiveSheet();
@@ -991,8 +994,8 @@ class ReporteAvanzadoController extends Controller
             ];
 
             $col = Coordinate::stringFromColumnIndex($col); // Cabecera A .. B .. C
-            
-            
+
+
             foreach($new_header as $vars_header){
                 $hoja_calculo->setCellValue($col.$row, $vars_header);
                 $hoja_calculo->getStyle($col.$row)->applyFromArray($header_style);
@@ -1001,7 +1004,7 @@ class ReporteAvanzadoController extends Controller
             }
 
             $row++;
-            
+
                 foreach ($rows as $data) {
                     $col_data = 1;
                     foreach($new_header as $vars_header){
@@ -1011,8 +1014,8 @@ class ReporteAvanzadoController extends Controller
                     }
                     $row++;
                 }
-            
-                
+
+
 
             $write_file = new Xlsx($spreadsheet);
             ob_start();
@@ -1020,7 +1023,7 @@ class ReporteAvanzadoController extends Controller
             $count_collect = $_work_collection->count();
             $filename = !empty($request->asesor_atendio_id) ? 'padron_'. now()->format('Y-m-d_His'). 'id_asesor-'.$request->asesor_atendio_id.'-'.$count_collect.'-tipo_asesoria_id-'.$request->tipo_asesoria_id.'.xlsx' : 'padron_'. now()->format('Y-m-d_His').'-tipo_asesoria_id-'.$request->tipo_asesoria_id.'.xlsx';
 
-        
+
             // }
             $write_file->save('php://output');
             $excel_archivo = ob_get_clean();
@@ -1039,7 +1042,7 @@ class ReporteAvanzadoController extends Controller
 
 
 
-            
+
         } catch (Exception $th) {
             //Log::info("message", [$th->getMessage()]);
             return response()->json([
