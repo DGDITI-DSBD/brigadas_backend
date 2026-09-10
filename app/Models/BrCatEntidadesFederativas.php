@@ -15,8 +15,8 @@ class BrCatEntidadesFederativas extends Model
     public $timestamps = false;
 
     protected $fillable = [
-        'entidad_federativa',
-        'abre_entidad_federativa',
+        'ct_entidad_federativa',
+        'entidad_federativa'
     ];
 
     public function municipios()

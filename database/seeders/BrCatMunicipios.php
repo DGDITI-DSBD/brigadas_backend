@@ -4,59 +4,75 @@ namespace Database\Seeders;
 
 use App\Models\CatMunicipio;
 use Illuminate\Database\Seeder;
-use Carbon\Carbon;
+use App\Traits\clean_data;
+use DB;
 
 class BrCatMunicipios extends Seeder
 {
     // Seeder para la tabla cat_municipios
+    use clean_data;
+    protected $table = 'br_cat_municipios';
+    protected $route_file = 'app/cat_municipios_2026.csv';
     public function run(): void
     {
-        $now = Carbon::now();
 
-        // Ruta del archivo CSV
-        $csvPath = storage_path('app/br_cat_municipios_csv.csv');
+     $file_csv = storage_path($this->route_file);
 
-        if (!file_exists($csvPath)) {
-            $this->command->error("Archivo CSV no encontrado: {$csvPath}");
+        if(!file_exists($file_csv)){
+            $this->command->error("Archivo no encontrado...");
             return;
         }
 
-        // Abrir archivo CSV
-        $file = fopen($csvPath, 'r');
+       
 
-        // Leer header (primera línea)
-        $header = fgetcsv($file);
+        $max_chunk = $this->recalculate_rows_per_params($this->table);
 
-        $batchSize = 100;
-        $batch = [];
-        $count = 0;
+        $this->command->info("Ejecutando inserción de filas...");
 
-        // Leer datos línea por línea
-        while (($data = fgetcsv($file)) !== false) {
-            $municipio = [
-                'ct_municipio'              => (int) $data[1],
-                'municipio'                 => trim($data[2]),
-                'ct_entidad_federativa'     => (int) $data[3],
-            ];
+        $data = [];
+        $_ex_open_file = fopen($file_csv, 'r');
 
-            $batch[] = $municipio;
-            $count++;
+        $lote = 0;
+        $num_lotes = 0;
 
-            // Insertar en lotes para mejor rendimiento
-            if (count($batch) >= $batchSize) {
-                CatMunicipio::insert($batch);
-                $this->command->info("Insertados {$count} municipios...");
-                $batch = [];
+        $cabecera = array_map([$this, 'cleanBOM'], fgetcsv($_ex_open_file));
+       
+   
+        while(($row = fgetcsv($_ex_open_file)) !== false){
+
+            $row = array_map([$this, 'cleanBOM'], $row);
+
+            $_mapping = [];
+            
+            foreach ($cabecera as $index => $nombre_cabecera) {
+                
+                $_mapping[$nombre_cabecera] = $row[$index] ?? null;
+
             }
+                $data[] = $_mapping; 
+                $lote++;
+                
+
+            if($lote >= $max_chunk){
+                DB::table($this->table)->insert($data);
+                $num_lotes++;
+                $this->command->info("Refrescando lote: ". $num_lotes);
+
+                $data = [];
+                $lote = 0;
+                
+                gc_collect_cycles(); // Liberamos memoria
+            }
+
         }
 
-        // Insertar último lote si queda algo
-        if (!empty($batch)) {
-            CatMunicipio::insert($batch);
-        }
+           
+                if(!empty($data)){
+                    DB::table($this->table)->insert($data);
+                }
+            
 
-        fclose($file);
 
-        $this->command->info("Total de municipios insertados: {$count}");
     }
+        
 }

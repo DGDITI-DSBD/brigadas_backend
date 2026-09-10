@@ -5,6 +5,8 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 
+use Log;
+
 class BrPadronHistorico extends Model
 {
     use HasFactory;
@@ -47,16 +49,21 @@ class BrPadronHistorico extends Model
 
     public function scopeSearching($query, $search)
     {
+
+        
         if($search) {
-        return $query->where('folio_relacionado', 'like', '%'.$search.'%')
-            ->orWhere('curp', 'like', '%'.$search.'%')
+            
+        return $query->where('folio_relacionado', 'like', "%$search%")
+            ->orWhere('curp', 'like', "%$search%")
             ->orWhereRaw("CONCAT(primer_ap, ' ', segundo_ap, ' ', nombres) LIKE ?", ["%$search%"])
-            ->orWhere('primer_ap', 'like', '%'.$search.'%')
-            ->orWhere('segundo_ap', 'like', '%'.$search.'%')
-            ->orWhere('nombres', 'like', '%'.$search.'%');
+            ->orWhere('primer_ap', 'like', "%$search%")
+            ->orWhere('segundo_ap', 'like', "%$search%")
+            ->orWhere('nombres', 'like', "%$search%");
         }
+        Log::info("search", [$search]);
         return $query;
     }
+    
     public function scopeFolioRelacionado($query, $folio_relacionado)
     {
         if($folio_relacionado) {

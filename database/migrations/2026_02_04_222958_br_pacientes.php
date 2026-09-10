@@ -30,11 +30,11 @@ return new class extends Migration
             $table->string('y_calle', 80);
             $table->string('otra_referencia', 100);
             $table->string('colonia', 80);
-            $table->integer('ct_localidad');
+            $table->unsignedBigInteger('ct_localidad');
             $table->string('localidad', 200);
             $table->integer('ct_municipio');
             $table->string('municipio', 50);
-            $table->unsignedBigInteger('ct_entidad_federativa');
+            $table->integer('ct_entidad_federativa');
             $table->string('entidad_federativa', 50);
             $table->unsignedBigInteger('codigo_postal_id')->default(1);
             $table->string('codigo_postal', 5);
@@ -43,8 +43,8 @@ return new class extends Migration
             $table->string('email', 80);
             $table->unsignedBigInteger('ct_gdo_estudios');
             $table->unsignedBigInteger('ct_nacionalidad');
-            $table->string('estado_padron')->comment('BENEFICIARIO, CAPTACION');
-            $table->boolean('requiere_seguimiento')->comment('true=si, false=no');
+            $table->string('estado_padron')->default('BENEFICIARIO')->comment('BENEFICIARIO, CAPTACION');
+           // $table->boolean('requiere_seguimiento')->comment('true=si, false=no');
             $table->timestamps();
 
 
@@ -68,10 +68,10 @@ return new class extends Migration
                 ->onDelete('restrict');
 
             // Foreign key compuesta - Codigos postales
-            $table->foreign(['ct_entidad_federativa', 'ct_municipio',  'codigo_postal_id'])
-                ->references(['ct_entidad_federativa', 'ct_municipio', 'ct_cp'])
+            $table->foreign('codigo_postal_id')
+                ->references('cp_id')
                 ->on('br_cat_codigos_postales')
-                ->onDelete('restrict');
+                ->onDelete('set null');
 
             // Foreign key - Nacionalidades
             $table->foreign('ct_nacionalidad')

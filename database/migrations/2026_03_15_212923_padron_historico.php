@@ -21,7 +21,7 @@ return new class extends Migration
             $table->integer('edad'); // No consultable
             $table->string('genero'); // No consultable
             $table->integer('ct_edo_civil');
-            $table->integer('ct_escolaridad')->nullable();
+            $table->integer('ct_gdo_estudios')->nullable();
             $table->integer('tp_id_oficial');
             $table->string('id_oficial');
             $table->integer('ct_ent_nac');

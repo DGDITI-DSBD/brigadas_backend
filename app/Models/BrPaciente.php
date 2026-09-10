@@ -106,6 +106,23 @@ class BrPaciente extends Model
         return $query;
     }
 
+     public function scopeSearching($query, $search)
+    {
+
+        
+        if($search) {
+            
+        return $query->where('folio_relacionado', 'like', "%$search%")
+            ->orWhere('curp', 'like', "%$search%")
+            ->orWhereRaw("CONCAT(primer_ap, ' ', segundo_ap, ' ', nombres) LIKE ?", ["%$search%"])
+            ->orWhere('primer_ap', 'like', "%$search%")
+            ->orWhere('segundo_ap', 'like', "%$search%")
+            ->orWhere('nombres', 'like', "%$search%");
+        }
+        Log::info("search", [$search]);
+        return $query;
+    }
+
     public function scopeSearchByProfesionista($query, $directorio_id)
     {
         if(is_null($directorio_id)) {

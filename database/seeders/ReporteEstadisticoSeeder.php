@@ -6,6 +6,7 @@ use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
 use App\Models\BrAcceso;
 use App\Models\BrDirectorio;
+use App\Models\CatLocalidad;
 use Carbon\Carbon;
 
 /**
@@ -307,6 +308,9 @@ class ReporteEstadisticoSeeder extends Seeder
             for ($i = 0; $i < $cantidadDia; $i++) {
                 $municipio = $municipios[array_rand($municipios)];
                 $estado    = $this->elegirEstado();
+                $localidad_pending = CatLocalidad::select('ct_localidad')->where('ct_entidad_federativa', $municipio['ct_entidad_federativa'])
+                                                                            ->where('ct_municipio', $municipio['ct_municipio'])
+                                                                            ->first();
 
                 $pacienteId = DB::table('br_pacientes')->insertGetId([
                     'primer_ap'             => $this->apellido(),
@@ -326,7 +330,7 @@ class ReporteEstadisticoSeeder extends Seeder
                     'y_calle'               => 'Calle Norte',
                     'otra_referencia'       => 'Frente al parque municipal',
                     'colonia'               => 'Col. Centro',
-                    'ct_localidad'          => 1,
+                    'ct_localidad'          => $localidad_pending->ct_localidad,
                     'localidad'             => 'Área Urbana',
                     'ct_municipio'          => $municipio['ct_municipio'],
                     'municipio'             => $municipio['nombre'],
@@ -338,8 +342,7 @@ class ReporteEstadisticoSeeder extends Seeder
                     'email'                 => strtolower(substr(str_shuffle('abcdefghijklmnop'), 0, 7)) . '@test.com',
                     'ct_gdo_estudios'       => rand(1, 6),
                     'ct_nacionalidad'       => 1,
-                    'estado_padron'         => 'ACTIVO',
-                    'requiere_seguimiento'  => false,
+                    'estado_padron'         => 'BENEFICIARIO'
                 ]);
 
                 DB::table('br_asesorias')->insert([

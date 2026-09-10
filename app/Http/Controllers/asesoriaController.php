@@ -10,6 +10,8 @@ use App\Models\BrAsesoriasPreguntasRespuestas;
 
 use App\Models\BrPadronHistorico;
 
+use App\Models\CatLocalidad;
+
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
 
@@ -42,11 +44,11 @@ class asesoriaController extends Controller
             $fechaNac = new \DateTime($fecha_nacimiento);
             $hoy = new \DateTime();
             $edad = $hoy->diff($fechaNac)->y;
-            Log::info("calculo fecha", [$fecha_nacimiento, $edad]);
+            //Log::info("calculo fecha", [$fecha_nacimiento, $edad]);
             return $edad;
         } catch (\Exception $e) {
             Log::info("error", [$e]);
-            Log::warning('Error al calcular edad desde fecha de nacimiento: ' . $e->getMessage());
+            //Log::warning('Error al calcular edad desde fecha de nacimiento: ' . $e->getMessage());
             return null;
         }
     }
@@ -60,18 +62,21 @@ class asesoriaController extends Controller
              //$_type_user = 'ADMINISTRADOR';
              
              //$paramsSearch = $request->params;
-             $asesorias = BrAsesoria::with(['paciente', 'preguntasRespuestas', 'preguntasRespuestas.pregunta', 'asesoria_canalizacion' ,'directorio', 'directorio.tipoAsesoria'])
-                                    ->searchByPeriodo($request->get('periodo') ?? $currentYear);
-             $deepQuery = null;
+             $asesorias = BrAsesoria::with(['paciente', 'preguntasRespuestas', 'preguntasRespuestas.pregunta', 'asesoria_canalizacion' ,'directorio', 'directorio.tipoAsesoria']);
+                                    //->searchByPeriodo($request->get('periodo') ?? $currentYear);
+             //$deepQuery = null;
             
              if($_type_user === 'ADMINISTRADOR' || $_type_user === 'COORDINADOR'){
 
+
+
+             //Log::info("calculate asesorias", [$request->all()]);
                 
                 $deepQuery = $asesorias->searchByParamsPacientes($request->get('general') ?? [])
                                        ->searchByProfesionista($request->get('directorio_id' ) ?? null) // Filtrar directorios asociados a cada profesión.
                                        ->searchByMunicipio($request->get('municipio_id' ) ?? null) // Filtrar por municipio.
                                        ->searchByFecha($request->get('fecha_asesoria') ?? null) // Filtrar por fecha de asesoría.
-                                       ->searchByEspecializacion($request->get('especialidad_id' ) ?? 1 );
+                                       ->searchByEspecializacion($request->get('especialidad_id' ) ?? null );
                             
             } else {
 
@@ -91,10 +96,11 @@ class asesoriaController extends Controller
 
 
                 // Estadisticas
-                $registros_corriente    = (clone $deepQuery)->whereDate('created_at', now()->toDateString())->count();
-                $asesorias_abiertas     = (clone $deepQuery)->where('estado_asesoria', 'ABIERTA')->count();
-                $asesorias_canalizadas  = (clone $deepQuery)->where('estado_asesoria', 'CANALIZADA')->count();
-                $asesorias_cerradas_mes = (clone $deepQuery)->where('estado_asesoria', 'CERRADA')->whereMonth('fecha_asesoria', now()->month)->count(); 
+                $registros_corriente    = (clone $asesorias)->whereDate('created_at', now()->toDateString())->get()->count();
+                $asesorias_abiertas     = (clone $asesorias)->where('estado_asesoria', 'ABIERTA')->get()->count();
+                $asesorias_canalizadas  = (clone $asesorias)->where('estado_asesoria', 'CANALIZADA')->get()->count();
+                $asesorias_cerradas_mes = (clone $asesorias)->where('estado_asesoria', 'CERRADA')->whereMonth('fecha_asesoria', now()->month)->get()->count(); 
+                
                 
                 
                 
@@ -405,7 +411,7 @@ class asesoriaController extends Controller
 
             try{
 
-            Log::info("all request", [$request->all()]);
+            //Log::info("all request", [$request->all()]);
 
             $this -> respuesta_padre = 'asesorias';
 
@@ -642,27 +648,58 @@ class asesoriaController extends Controller
             try{
                 $this -> respuesta_padre = 'catalogos';
              
+                $flag_type = null;
+                $flag_finded = false;
 
-                $beneficiarias_historico = BrPadronHistorico::select('id', 'folio_relacionado', 
-                'primer_ap', 'segundo_ap', 'nombres', 'fecha_nacimiento', 'curp', 'ct_municipio', 'municipio', 
-                'genero', 'edad', 'ct_edo_civil', 'ct_escolaridad', 'tp_id_oficial', 'id_oficial',
-                'ct_ent_nac', 'calle', 'num_ext', 'num_int', 'entre_calle', 'y_calle', 'otra_referencia', 
-                'colonia', 'ct_localidad', 'localidad', 'ct_entidad_federativa', 'entidad_federativa', 'codigo_postal_id', 'codigo_postal', 
-                'telefono', 'celular', 'email', 'ct_nacionalidad')
-                ->searching($request->get('search') ?? null)
-                ->take(5)
-                ->get();
+                $beneficiarias_historico = BrPaciente::select('id', 'folio_relacionado', 
+                    'primer_ap', 'segundo_ap', 'nombres', 'fecha_nacimiento', 'curp', 'ct_municipio', 'municipio', 
+                    'genero', 'edad', 'ct_edo_civil', 'ct_gdo_estudios', 'tp_id_oficial', 'id_oficial',
+                    'ct_ent_nac', 'calle', 'num_ext', 'num_int', 'entre_calle', 'y_calle', 'otra_referencia', 
+                    'colonia', 'ct_localidad', 'localidad', 'ct_entidad_federativa', 'entidad_federativa', 'codigo_postal_id', 'codigo_postal', 
+                    'telefono', 'celular', 'email', 'ct_nacionalidad')
+                    ->searching($request->get('search') ?? null)
+                    ->take(5)
+                    ->get();
 
-                if($beneficiarias_historico->isEmpty()){
-                    $this -> respuesta_hijo = 'consulta_sin_datos';
-                    $this -> construir_respuesta = [];
-                }else{
-                    $this -> respuesta_hijo = 'consulta_success';
-                    $this -> construir_respuesta = $beneficiarias_historico;
-                }   
+                //Log::info("request->get", [$beneficiarias_historico]);
+                if(!($beneficiarias_historico->isEmpty())){
+                    $flag_type = 'pacientes';
+                    $this -> respuesta_hijo = 'consulta_success'; 
 
+                }else {
+
+                    $beneficiarias_historico = BrPadronHistorico::select('id', 'folio_relacionado', 
+                    'primer_ap', 'segundo_ap', 'nombres', 'fecha_nacimiento', 'curp', 'ct_municipio', 'municipio', 
+                    'genero', 'edad', 'ct_edo_civil', 'ct_gdo_estudios', 'tp_id_oficial', 'id_oficial',
+                    'ct_ent_nac', 'calle', 'num_ext', 'num_int', 'entre_calle', 'y_calle', 'otra_referencia', 
+                    'colonia', 'ct_localidad', 'localidad', 'ct_entidad_federativa', 'entidad_federativa', 'codigo_postal_id', 'codigo_postal', 
+                    'telefono', 'celular', 'email', 'ct_nacionalidad')
+                    ->searching($request->get('search') ?? null)
+                    ->take(5)
+                    ->get();
+
+                    if(!($beneficiarias_historico->isEmpty())){
+                        $flag_type = 'padron';
+                        $this -> respuesta_hijo = 'consulta_success';
+                    }
+
+                }
+
+                    $this -> construir_respuesta = ['tipo_busqueda' => $flag_type, 'busqueda' => $beneficiarias_historico];
+     
+                    
+                    if(($beneficiarias_historico->isEmpty())){
+                        $this -> respuesta_hijo = 'consulta_sin_datos';
+                        $this -> construir_respuesta = [];
+                    }   
+                
+                    
                 return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
-            }catch(\Exception $e){
+                   
+
+                
+            }catch(Exception $e){
+                
                 $this -> respuesta_hijo = 'consulta_fail';
                 $this -> construir_respuesta = ['error' => 'Error al consultar beneficiarias en histórico: ' . $e->getMessage()];
                 return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, $this -> construir_respuesta));
@@ -795,7 +832,7 @@ class asesoriaController extends Controller
             $this -> respuesta_padre = 'asesorias';
 
           
-            Log::info("request", [$request->all()]);
+            //Log::info("request", [$request->all()]);
             // Validar todos los datos necesarios
             $validatedData = $request->validate([
                 // Datos del paciente (para importar si no existe)
@@ -867,29 +904,11 @@ class asesoriaController extends Controller
                 // PASO 1: Crear o buscar paciente
                 $pacienteData = $validatedData['paciente'];
                 $tipo_transaction = $request['paciente']['tipo'];
-                Log::info("tipo transaction", [$tipo_transaction]);
-                
-                // Calcular edad automáticamente desde fecha de nacimiento
-                if (isset($pacienteData['fecha_nacimiento']) && is_null($validatedData['paciente']['edad'])) {
-                    $pacienteData['edad'] = $this->calcularEdad($pacienteData['fecha_nacimiento']);
-                }
-
-                if($tipo_transaction !== 'automatico'){
-
-                    $paciente = BrPaciente::where('curp', $pacienteData['curp'])
-                    ->where(function($query) use ($pacienteData) {
-                        if ( !empty($pacienteData['folio_relacionado']) 
-                             && !is_null($pacienteData['folio_relacionado'])
-                             && $pacienteData['folio_relacionado'] !== 'S/D'
-                           ) {
-                            $query->where('folio_relacionado', $pacienteData['folio_relacionado']);
-                        }
-                    })
-                    ->first();
-
-                    if(!$paciente){
-
-                        $paciente = BrPaciente::create([
+                $tipo_busqueda    = $request['paciente']['tipo_busqueda'];
+                $paciente_id = null;
+                $ct_localidad = $this->construct_localidad($pacienteData['ct_entidad_federativa'], $pacienteData['ct_municipio'], $pacienteData['ct_localidad']);
+                $localidad    = $this->not_correct_localidad($ct_localidad, $pacienteData['ct_municipio']);
+                $map_data_paciente = [
                             'folio_relacionado'      => $pacienteData['folio_relacionado'] ?? null,
                             'primer_ap'              => $pacienteData['primer_ap'],
                             'segundo_ap'             => $pacienteData['segundo_ap'] ?? 'XX',
@@ -912,8 +931,8 @@ class asesoriaController extends Controller
                             'colonia'                => isset($pacienteData['colonia']) ? strtoupper($this->remove_accents($pacienteData['colonia'])) : null,
                             'ct_municipio'           => $pacienteData['ct_municipio'] ?? null,
                             'municipio'              => isset($pacienteData['municipio']) ? strtoupper($this->remove_accents($pacienteData['municipio'])) : null,
-                            'ct_localidad'           => $pacienteData['ct_localidad'] ?? null,
-                            'localidad'              => isset($pacienteData['localidad']) ? strtoupper($this->remove_accents($pacienteData['localidad'])) : null,
+                            'ct_localidad'           => $ct_localidad ?? null,
+                            'localidad'              => $localidad ?? null,
                             'ct_entidad_federativa'  => $pacienteData['ct_entidad_federativa'] ?? null,
                             'entidad_federativa'     => isset($pacienteData['entidad_federativa']) ? strtoupper($this->remove_accents($pacienteData['entidad_federativa'])) : null,
                             'codigo_postal_id'       => $pacienteData['codigo_postal_id'],
@@ -922,26 +941,71 @@ class asesoriaController extends Controller
                             'celular'                => $pacienteData['celular'] ?? null,
                             'email'                  => $pacienteData['email'] ?? null,
                             'ct_nacionalidad'        => $pacienteData['ct_nacionalidad'] ?? null,
-                            'requiere_seguimiento'    => false,
-                            'estado_padron'          => 'ACTIVO',
-                        ]);
-
-                    }
-
-                     
-                }else {
-
-                    $paciente = BrPaciente::where('id', $pacienteData['id'])->first();
-                    
-                    if(!$paciente){
-                         $this -> respuesta_padre = 'pacientes';
-                        $this -> respuesta_hijo = 'paciente_inexistente';
-                        return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, null), 500);
-                    }
-                    
-
-
+                            //'estado_padron'          => 'CAPTACION' En espera de evaluar
+                        
+                ];
+                //Log::info("tipo transaction", [$tipo_transaction]);
+                
+                // Calcular edad automáticamente desde fecha de nacimiento
+                if (isset($pacienteData['fecha_nacimiento']) && is_null($validatedData['paciente']['edad'])) {
+                    $pacienteData['edad'] = $this->calcularEdad($pacienteData['fecha_nacimiento']);
                 }
+
+                // Siempre buscar en pacientes
+
+                $paciente = BrPaciente::where('curp', $pacienteData['curp'])
+                    ->where(function($query) use ($pacienteData) {
+                        if ( !empty($pacienteData['folio_relacionado']) 
+                             && !is_null($pacienteData['folio_relacionado'])
+                             && $pacienteData['folio_relacionado'] !== 'S/D'
+                           ) {
+                            $query->where('folio_relacionado', $pacienteData['folio_relacionado']);
+                        }
+                    })
+                ->first();
+
+                if($tipo_transaction !== 'automatico' && !$paciente){
+
+
+                        $map_data_paciente['estado_padron'] = 'CAPTACION';
+
+                        $paciente = BrPaciente::create($map_data_paciente);
+                    
+                    
+                    //$paciente_id = $paciente->id;
+
+
+                }else if($tipo_busqueda === 'padron' && !$paciente){
+
+                  $map_data_paciente['estado_padron'] = 'BENEFICIARIO';
+
+                  $paciente = BrPaciente::create($map_data_paciente);
+                    //$paciente_id = $pacienteData['id'];
+                }else {
+                      $paciente = BrPaciente::where('id', $request['paciente']['id'])->first();
+                }
+
+                if(is_null($paciente) || empty($paciente)){
+                            DB::rollback();
+                            $this -> respuesta_padre = 'pacientes';
+                            $this -> respuesta_hijo = 'paciente_inexistente';
+                            return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, null), 500);
+                }
+
+                    // }else {
+
+                    //     Log::info("paciente data", [$pacienteData]);
+                    //     $paciente = BrPaciente::where('id', $pacienteData['id'])->first();
+                        
+                    //     if(!$paciente){
+                    //         $this -> respuesta_padre = 'pacientes';
+                    //         $this -> respuesta_hijo = 'paciente_inexistente';
+                    //         return response() -> json($this -> typeResponse($this -> respuesta_padre, $this -> respuesta_hijo, null), 500);
+                    //     }
+                    
+
+
+                    // }
                    
 
              
@@ -1262,6 +1326,33 @@ class asesoriaController extends Controller
             $string
         );
     }
+
+    protected function construct_localidad($entidad_federativa_id, $municipio_id, $localidad_id) {
+
+        $localidad_pointer = $localidad_id;
+        $length_localidad = strlen((string)$localidad_pointer);
+
+        if($length_localidad < 9){
+            // Construir localidad según parametros
+            $_rule_localidad = str_pad((int)$localidad_id, 4, '0', STR_PAD_LEFT);
+            $_rule_municipio = str_pad((int)$municipio_id, 3, '0', STR_PAD_LEFT);
+            $_construct_localidad = (string)$entidad_federativa_id.(string)$_rule_municipio.(string)$_rule_localidad;
+            $localidad_pointer = $_construct_localidad;
+        }
+
+        return $localidad_pointer;
+    }
+
+    protected function not_correct_localidad($ct_localidad, $ct_municipio){
+
+        $ct_localidad = CatLocalidad::select('localidad')->where('ct_localidad', $ct_localidad)->first();
+        if(is_null($ct_localidad)){
+        $ct_localidad = CatLocalidad::select('localidad')->where('ct_municipio', $ct_municipio)->orderBy('ct_localidad', 'desc')->first();
+        }
+
+        return $ct_localidad->localidad ?? '';
+    }
+
 
      /**
      * Calcular edad a partir de la fecha de nacimiento

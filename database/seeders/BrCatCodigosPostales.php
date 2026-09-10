@@ -4,81 +4,74 @@ namespace Database\Seeders;
 
 use App\Models\CatCodigosPostales;
 use Illuminate\Database\Seeder;
-use Carbon\Carbon;
+use App\Traits\clean_data;
+use DB;
+
+
 class BrCatCodigosPostales extends Seeder
 {
+    use clean_data;
     // Datos para la tabla br_cat_codigos_postales  
+    protected $table = 'br_cat_codigos_postales';
+    protected $route_file = 'app/cat_codigos_postales_act_2026.csv';
+
     public function run(): void
     {
-        $now = Carbon::now();
+        $file_csv = storage_path($this->route_file);
 
-        // Ruta del archivo CSV
-        $csvPath = storage_path('app/br_codigos_postales_una_hoja_csv_region_15.csv');
-
-        if (!file_exists($csvPath)) {
-            $this->command->error("Archivo CSV no encontrado: {$csvPath}");
+        if(!file_exists($file_csv)){
+            $this->command->error("Archivo no encontrado...");
             return;
         }
 
-        $this->command->info("Iniciando importación de códigos postales...");
-        $this->command->info("Archivo: {$csvPath}");
+       
 
-        // Abrir archivo CSV
-        $file = fopen($csvPath, 'r');
+        $max_chunk = $this->recalculate_rows_per_params($this->table);
 
-        // Leer header (primera línea)
-        $header = fgetcsv($file);
-        $this->command->info("Columnas encontradas: " . implode(', ', $header));    
+        $this->command->info("Ejecutando inserción de filas...");
 
-        $batchSize = 1000;
-        $batch = [];
-        $count = 0;
-        $totalLines = 157196;
-        $this->command->info("Procesando ~{$totalLines} registros en lotes de {$batchSize}...");
+        $data = [];
+        $_ex_open_file = fopen($file_csv, 'r');
 
-        $uniqueKeys = [];
+        $lote = 0;
+        $num_lotes = 0;
 
-        while (($data = fgetcsv($file)) !== false) {
-            // Validar que la fila tenga suficientes columnas
-            if (count($data) < 7) continue;
+        $cabecera = array_map([$this, 'cleanBOM'], fgetcsv($_ex_open_file));
+       
+   
+        while(($row = fgetcsv($_ex_open_file)) !== false){
 
-            // Generar clave única
-            $key = $data[5] . '-' . $data[4] . '-' . $data[1] . '-' . $data[2];
-            if (isset($uniqueKeys[$key])) continue; // Saltar duplicados
-            $uniqueKeys[$key] = true;
+            $row = array_map([$this, 'cleanBOM'], $row);
 
-            $codigoPostal = [
-                'codigo_postal'             => (int) $data[1],
-                'colonia'                   => $data[2],
-                'ct_cp'                     => (int) $data[3],
-                'ct_municipio'              => (int) $data[4],
-                'ct_entidad_federativa'     => (int) $data[5],
-                'periodo'                   => (int) $data[6],
-                'estatus'                   => true,
-            ];
-            $batch[] = $codigoPostal;
-            $count++;
-            if (count($batch) >= $batchSize) {
-                CatCodigosPostales::insert($batch);
-                $progress = round(($count / $totalLines) * 100, 1);
-                $this->command->info("Insertados {$count} códigos postales... ({$progress}%)");
-                $batch = [];
+            $_mapping = [];
+            
+            foreach ($cabecera as $index => $nombre_cabecera) {
+                
+                $_mapping[$nombre_cabecera] = $row[$index] ?? null;
 
-                // Liberar memoria cada cierto número de lotes
-                if ($count % 10000 === 0) {
-                    gc_collect_cycles();
-                }
             }
+                $data[] = $_mapping; 
+                $lote++;
+                
+
+            if($lote >= $max_chunk){
+                DB::table($this->table)->insert($data);
+                $num_lotes++;
+                $this->command->info("Refrescando lote: ". $num_lotes);
+
+                $data = [];
+                $lote = 0;
+                
+                gc_collect_cycles(); // Liberamos memoria
+            }
+
         }
 
-        // Insertar último lote si queda algo
-        if (!empty($batch)) {
-            CatCodigosPostales::insert($batch);
-        }
+           
+                if(!empty($data)){
+                    DB::table($this->table)->insert($data);
+                }
+            
 
-        fclose($file);
-
-        $this->command->info("✅ Total de códigos postales insertados: {$count}");
-        $this->command->info("Importación completada exitosamente.");
     }
 }

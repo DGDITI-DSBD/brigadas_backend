@@ -86,6 +86,7 @@ class BrAsesoria extends Model
 
     public function scopeSearchByMunicipio($query, $municipio_id)
     {
+        //Log::info("municipio", [$municipio_id]);
         if($municipio_id) {
             return $query->whereHas('paciente', function ($q) use ($municipio_id) {
                 $q->where('ct_municipio', $municipio_id);

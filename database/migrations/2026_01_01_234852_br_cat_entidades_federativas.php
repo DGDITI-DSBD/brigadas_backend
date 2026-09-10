@@ -13,7 +13,7 @@ return new class extends Migration
         Schema::create('br_cat_entidades_federativas', function (Blueprint $table) {
             $table->id('ct_entidad_federativa');
             $table->string('entidad_federativa')->comment('NOMBRE DE LA ENTIDAD FEDERATIVA');
-            $table->string('abre_entidad_federativa')->comment('ABREVIATURA DE LA ENTIDAD FEDERATIVA');
+            //$table->string('abre_entidad_federativa')->comment('ABREVIATURA DE LA ENTIDAD FEDERATIVA');
 
         });
     }

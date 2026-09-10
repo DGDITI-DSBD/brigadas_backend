@@ -11,10 +11,10 @@ return new class extends Migration
     {
         Schema::create('br_cat_localidades', function (Blueprint $table) {
             $table->id('localidad_id'); // id autoincremental único
-            $table->integer('ct_localidad'); // código oficial de la localidad
+            $table->unsignedBigInteger('ct_localidad'); // código oficial de la localidad
             $table->string('localidad');
-            $table->unsignedBigInteger('ct_municipio');
-            $table->unsignedBigInteger('ct_entidad_federativa');
+            $table->integer('ct_municipio');
+            $table->integer('ct_entidad_federativa');
             $table->integer('periodo');
             $table->boolean('estatus')->default(true); // true=activo, false=inactivo
 
