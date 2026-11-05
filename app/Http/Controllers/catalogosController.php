@@ -357,8 +357,8 @@ class catalogosController extends Controller
             $get_documentos_oficiales   = DB::table('br_cat_documentos_oficiales')->get();
             $get_entidades              = DB::table('br_cat_entidades_federativas')->get();
             $get_municipios             = DB::table('br_cat_municipios')->get();
-            $get_localidades            = DB::table('br_cat_localidades')->get();
-            $get_codigos_postales       = DB::table('br_cat_codigos_postales')->get();
+            $get_localidades            = DB::table('br_cat_localidades')->where('ct_entidad_federativa', 15)->get();
+            $get_codigos_postales       = DB::table('br_cat_codigos_postales')->where('ct_entidad_federativa', 15)->get();
 
             $this -> respuesta_hijo = 'consulta_success';
             $this -> construir_respuesta = [
